@@ -1,0 +1,219 @@
+version: '3.8'
+
+services:
+  # Databases
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: physforge
+      POSTGRES_USER: physforge_user
+      POSTGRES_PASSWORD: physforge_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U physforge_user -d physforge"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    environment:
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # Backend Services
+  auth-service:
+    build:
+      context: .
+      dockerfile: auth_service/Dockerfile
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://physforge_user:physforge_password@postgres:5432/physforge
+      - SECRET_KEY=your-secret-key-here
+      - REDIS_URL=redis://redis:6379/0
+      - ENVIRONMENT=development
+    ports:
+      - "8001:8001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  data-management-service:
+    build:
+      context: .
+      dockerfile: data_management_service/Dockerfile
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://physforge_user:physforge_password@postgres:5432/physforge
+      - SECRET_KEY=your-secret-key-here
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_BUCKET_NAME=scientific-datasets
+      - ENVIRONMENT=development
+    ports:
+      - "8002:8002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  job-orchestration-service:
+    build:
+      context: .
+      dockerfile: job_orchestration_service/Dockerfile
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://physforge_user:physforge_password@postgres:5432/physforge
+      - SECRET_KEY=your-secret-key-here
+      - REDIS_URL=redis://redis:6379/0
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_BUCKET_NAME=scientific-datasets
+      - JOB_ORCHESTRATION_DATABASE_URL=postgresql+psycopg2://physforge_user:physforge_password@postgres:5432/physforge
+      - ENVIRONMENT=development
+    ports:
+      - "8003:8003"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  reporting-service:
+    build:
+      context: .
+      dockerfile: reporting_service/Dockerfile
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://physforge_user:physforge_password@postgres:5432/physforge
+      - SECRET_KEY=your-secret-key-here
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_BUCKET_NAME=scientific-datasets
+      - ENVIRONMENT=development
+    ports:
+      - "8004:8004"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8004/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  active-experiment-service:
+    build:
+      context: .
+      dockerfile: active_experiment_service/Dockerfile
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://physforge_user:physforge_password@postgres:5432/physforge
+      - SECRET_KEY=your-secret-key-here
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_BUCKET_NAME=scientific-datasets
+      - JOB_ORCHESTRATION_DATABASE_URL=postgresql+psycopg2://physforge_user:physforge_password@postgres:5432/physforge
+      - ENVIRONMENT=development
+    ports:
+      - "8005:8005"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8005/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Workers
+  worker-pinn:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://physforge_user:physforge_password@postgres:5432/physforge
+      - SECRET_KEY=your-secret-key-here
+      - REDIS_URL=redis://redis:6379/0
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_BUCKET_NAME=scientific-datasets
+      - JOB_ORCHESTRATION_DATABASE_URL=postgresql+psycopg2://physforge_user:physforge_password@postgres:5432/physforge
+      - ENVIRONMENT=development
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    deploy:
+      replicas: 1
+
+  # Frontend
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - auth-service
+      - data-management-service
+      - job-orchestration-service
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:

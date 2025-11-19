@@ -1,0 +1,104 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+
+rule_files:
+  - "rules.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+scrape_configs:
+  # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Node Exporter for system metrics
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node-exporter:9100']
+
+  # cAdvisor for container metrics
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+
+  # PhysForge Services
+  - job_name: 'auth_service'
+    static_configs:
+      - targets: ['auth_service:8000']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  - job_name: 'data_management_service'
+    static_configs:
+      - targets: ['data_management_service:8001']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  - job_name: 'job_orchestration_service'
+    static_configs:
+      - targets: ['job_orchestration_service:8002']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  - job_name: 'reporting_service'
+    static_configs:
+      - targets: ['reporting_service:8003']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  - job_name: 'active_experiment_service'
+    static_configs:
+      - targets: ['active_experiment_service:8004']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  - job_name: 'pde_discovery_service'
+    static_configs:
+      - targets: ['pde_discovery_service:8005']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  - job_name: 'pinn_training_service'
+    static_configs:
+      - targets: ['pinn_training_service:8006']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  - job_name: 'derivative_feature_service'
+    static_configs:
+      - targets: ['derivative_feature_service:8007']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  # Redis for job queue monitoring
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
+    metrics_path: '/metrics'
+
+  # PostgreSQL
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres:5432']
+    metrics_path: '/metrics'
+
+  # MinIO object storage
+  - job_name: 'minio'
+    static_configs:
+      - targets: ['minio:9000']
+    metrics_path: '/minio/prometheus/metrics'
+    params:
+      format: ['prometheus']
+
+  # Traefik API Gateway
+  - job_name: 'traefik'
+    static_configs:
+      - targets: ['traefik:8080']
+    metrics_path: '/metrics'

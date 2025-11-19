@@ -1,0 +1,14 @@
+fastapi==0.111.0
+uvicorn[standard]==0.30.1
+sqlalchemy==2.0.30
+psycopg2-binary==2.9.9
+pydantic==2.7.1
+pydantic-settings==2.2.1
+minio==7.2.5
+numpy==1.26.4
+scipy==1.13.0 # Added for statistical functions (e.g., t-distribution for CIs)
+h5py==3.10.0
+pysindy==1.8 # For SINDy
+pysr==0.17.1 # For PySR
+sympy==1.12 # For symbolic manipulation
+scikit-learn==1.4.2 # Added for KFold in SINDy cross-validation

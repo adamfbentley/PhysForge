@@ -1,0 +1,12 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom styles for sorting indicators */
+.sort-asc::after {
+  content: ' ↑';
+}
+
+.sort-desc::after {
+  content: ' ↓';
+}
