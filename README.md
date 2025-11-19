@@ -84,6 +84,8 @@ python app.py                    # Start server
 
 **Performance:** ~2 minutes from upload to discovered equation on CPU.
 
+**🚀 Deploy it yourself:** See [app_simplified/DEPLOYMENT.md](app_simplified/DEPLOYMENT.md) for one-click deployment to Render (free hosting).
+
 **Why simplified?** See [SIMPLIFIED_VS_MAIN.md](SIMPLIFIED_VS_MAIN.md) for detailed comparison with the main platform.
 
 **Technical details:** [app_simplified/EQUATION_DISCOVERY.md](app_simplified/EQUATION_DISCOVERY.md) explains the discovery algorithm.
