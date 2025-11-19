@@ -1,6 +1,6 @@
 # PhysForge: AI-Powered Physics Discovery Platform
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: Proprietary](https://img.shields.io/badge/License-Proprietary-red.svg)](LICENSE)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![React 18](https://img.shields.io/badge/react-18-blue.svg)](https://reactjs.org/)
 [![Status: Development](https://img.shields.io/badge/status-development-orange.svg)]()
@@ -364,3 +364,39 @@ After the services are running, you'll need to register an initial user and assi
     ```
 
 You now have an admin user with full permissions to interact with the platform's features.
+
+---
+
+## 📄 License
+
+**PhysForge Proprietary License** - This software is proprietary and protected by copyright.
+
+**Permitted Uses:**
+- ✅ Academic research and educational purposes (non-commercial)
+- ✅ Viewing and studying the code for learning
+- ✅ Portfolio evaluation by potential employers/institutions
+
+**Prohibited Uses:**
+- ❌ Commercial use or deployment without license
+- ❌ Creating commercial products/services based on this software
+- ❌ Distribution or sublicensing
+- ❌ SaaS or cloud-based service deployment
+
+**Commercial Licensing Available:**  
+For commercial use, production deployment, or custom licensing, contact:  
+📧 adam.f.bentley@gmail.com
+
+See [LICENSE](LICENSE) for full terms and conditions.
+
+---
+
+## 👤 Author
+
+**Adam F. Bentley**  
+Victoria University of Wellington  
+📧 adam.f.bentley@gmail.com  
+🔗 GitHub: [@adamfbentley](https://github.com/adamfbentley)
+
+---
+
+*This project represents advanced computational physics research demonstrating expertise in ML engineering, scientific computing, and full-stack development. For collaboration, licensing, or employment inquiries, please get in touch.*
