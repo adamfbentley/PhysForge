@@ -5,47 +5,49 @@
 [![React 18](https://img.shields.io/badge/react-18-blue.svg)](https://reactjs.org/)
 [![Status: Development](https://img.shields.io/badge/status-development-orange.svg)]()
 
-> **Automatically discover the mathematical laws governing physical systems from data using Physics-Informed Neural Networks and symbolic regression.**
+> **A platform concept for discovering mathematical laws governing physical systems from data using Physics-Informed Neural Networks and symbolic regression.**
 
-PhysForge is an enterprise-grade platform that accelerates scientific discovery by combining modern machine learning with physics principles. Upload your experimental or simulation data, and the platform automatically trains Physics-Informed Neural Networks (PINNs), extracts derivatives, discovers governing PDEs through symbolic regression, and suggests optimal follow-up experiments.
+PhysForge is an ambitious project aiming to automate scientific discovery by combining Physics-Informed Neural Networks (PINNs) with symbolic regression techniques. The goal is to enable researchers to upload experimental or simulation data and automatically train physics-aware neural networks, compute derivatives, and discover governing equations.
 
-**🎯 What makes this unique:**
-- **End-to-end automation**: From raw data → trained PINN → discovered equations in one workflow
-- **Production-ready architecture**: Microservices, job queuing, authentication, full-stack web UI
-- **Physics-aware ML**: Not just curve fitting—incorporates physical constraints and symbolic reasoning
-- **Research-grade tools**: SINDy sparse regression, PySR symbolic regression, uncertainty quantification
+**⚠️ Current Status: In Development (Not Yet Tested)**
 
-**💡 Use cases:**
+This is a large-scale project (~15,000 lines of code) with most components implemented but not yet validated end-to-end. The architecture is designed but integration testing is still needed to verify everything works together as intended.
+
+**🎯 Intended capabilities:**
+- **Automated workflow**: Raw data → trained PINN → discovered equations
+- **Microservices architecture**: 10 FastAPI services (auth, data management, job orchestration, PINN training, derivatives, PDE discovery, active learning, reporting, CLI, audit)
+- **Physics-aware ML**: Incorporates physical constraints and symbolic reasoning via SINDy and PySR
+- **Modern frontend**: React + TypeScript UI for job monitoring and visualization
+
+**💡 Potential use cases:**
 - Discover PDEs from fluid dynamics simulations
-- Extract governing equations from biological time-series data  
-- Reverse-engineer material properties from stress-strain curves
-- Automate physics model selection for climate/weather data
+- Extract governing equations from time-series data  
+- Reverse-engineer physical models from experimental measurements
+- Automate equation discovery for climate/physics data
 
 ---
 
-## Quick Demo
+## 🚀 Implementation Status
 
-```bash
-# 1. Upload dataset (CSV, HDF5, NetCDF)
-# 2. Train PINN on your data
-# 3. Extract spatial/temporal derivatives automatically
-# 4. Discover governing PDE via symbolic regression
-# 5. Validate with metrics: RMSE, AIC/BIC, sparsity
-```
+**Codebase:** ~90% complete (217 files, 106 Python files, 43 TypeScript/JS files)  
+**Backend:** 10 microservices implemented with schemas, routers, and some tests  
+**Frontend:** React 18 + TypeScript UI implemented but dependencies not yet installed  
+**Infrastructure:** Docker Compose configuration exists but not fully tested  
+**Integration:** End-to-end workflow has not been validated in practice  
 
-**Example discovered equation:**
-```
-∂u/∂t = 0.98∇²u + 2.03u(1-u)  [Reaction-Diffusion PDE]
-```
+**What's done:**
+- ✅ Core service implementations (FastAPI microservices)
+- ✅ Frontend UI components (React + Mantine)
+- ✅ Database schemas and models (PostgreSQL per service)
+- ✅ Job orchestration design (Redis Queue)
+- ✅ ML integration interfaces (PyTorch, SINDy, PySR)
 
----
-
-## 🚀 Current Status
-
-**Implementation:** ~90% complete  
-**Backend:** 8 microservices fully implemented with tests  
-**Frontend:** Production-ready React 18 + TypeScript UI  
-**Missing:** API Gateway integration, full Docker Compose orchestration  
+**What's not tested:**
+- ⚠️ Full Docker Compose orchestration
+- ⚠️ API Gateway routing and service communication
+- ⚠️ End-to-end workflow (upload → PINN → discovery)
+- ⚠️ Redis job queue functionality
+- ⚠️ Frontend-backend integration
 
 See [CURRENT_STATUS.md](CURRENT_STATUS.md) for detailed progress.
 
