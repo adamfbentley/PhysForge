@@ -55,26 +55,52 @@ See [CURRENT_STATUS.md](CURRENT_STATUS.md) for detailed progress.
 
 ## 🎬 Working Demo
 
-A minimal standalone demo (`demo_minimal_pinn.py`) demonstrates the core PINN functionality:
+### Option 1: Simplified Full-Stack Application (Recommended)
 
-**What it does:**
-1. Generates synthetic data from the 1D heat equation: ∂u/∂t = α∇²u
-2. Trains a Physics-Informed Neural Network using automatic differentiation
-3. Enforces PDE constraints during training (physics loss + data loss)
-4. Visualizes training progress and predictions
+A complete working application in `app_simplified/` demonstrates the full PhysForge workflow:
+
+**Features:**
+- 🌐 **Web Interface**: Upload CSV data via drag-and-drop
+- 🤖 **PINN Training**: Automatic physics-informed training (3,000 epochs)
+- 🔬 **Equation Discovery**: Discovers governing PDEs using sparse regression
+- 📊 **Real-time Monitoring**: Watch jobs process and view results instantly
+
+**Discovered Equation Types:**
+- Linear: `u`, `u_x`, `u_t`
+- Nonlinear: `u²`, `u·u_x` (Burgers), `u_x²`
+- Higher derivatives: `u_xx`, `u_xxx` (KdV), `u_tt` (wave)
+- Mixed: `u_xt`, `u·u_xx`
 
 **To run:**
 ```bash
-# Install dependencies
-pip install torch matplotlib numpy
+cd app_simplified
+python generate_sample_data.py  # Create test data
+python app.py                    # Start server
 
-# Run demo
+# Open browser to http://localhost:8000
+# Upload sample_heat_equation.csv
+# Watch it train and discover: u_t = 0.010000·u_xx
+```
+
+**Performance:** ~2 minutes from upload to discovered equation on CPU.
+
+**Why simplified?** See [SIMPLIFIED_VS_MAIN.md](SIMPLIFIED_VS_MAIN.md) for detailed comparison with the main platform.
+
+**Technical details:** [app_simplified/EQUATION_DISCOVERY.md](app_simplified/EQUATION_DISCOVERY.md) explains the discovery algorithm.
+
+---
+
+### Option 2: Minimal PINN Demo
+
+A standalone script (`demo_minimal_pinn.py`) demonstrates core PINN training:
+
+**To run:**
+```bash
+pip install torch matplotlib numpy
 python demo_minimal_pinn.py
 ```
 
-**Results:** The demo trains a 2,241-parameter neural network to learn the heat equation dynamics, achieving MSE < 3.1e-05 after 5,000 epochs. Output includes training loss curves and solution visualizations saved to `demo_pinn_results.png`.
-
-This demonstrates the fundamental capability that PhysForge builds upon - the full platform adds microservices architecture, job queuing, symbolic regression, and active learning on top of this core PINN training engine.
+**Results:** Trains a 2,241-parameter network achieving MSE < 3.1e-05 on the heat equation.
 
 ---
 

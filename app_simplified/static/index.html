@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhysForge - AI Physics Discovery</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+        
+        h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .tagline {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .upload-zone {
+            border: 3px dashed #667eea;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .upload-zone:hover {
+            border-color: #764ba2;
+            background: #f8f9ff;
+        }
+        
+        .upload-zone.dragover {
+            border-color: #764ba2;
+            background: #f0f4ff;
+        }
+        
+        input[type="file"] {
+            display: none;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 6px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .job-list {
+            display: grid;
+            gap: 15px;
+        }
+        
+        .job-item {
+            background: #f8f9ff;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .job-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .job-item.completed {
+            border-left-color: #10b981;
+        }
+        
+        .job-item.failed {
+            border-left-color: #ef4444;
+        }
+        
+        .job-item.processing {
+            border-left-color: #f59e0b;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+        
+        .status-queued {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .status-processing {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .status-completed {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .status-failed {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .result-panel {
+            display: none;
+            margin-top: 30px;
+        }
+        
+        .result-panel.active {
+            display: block;
+        }
+        
+        .equation-display {
+            background: #1e293b;
+            color: #10b981;
+            padding: 30px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 1.5em;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .metric {
+            background: #f8f9ff;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        
+        .metric-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .metric-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .visualization {
+            width: 100%;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .info-box {
+            background: #e0f2fe;
+            border-left: 4px solid #0284c7;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        
+        .error-box {
+            background: #fee2e2;
+            border-left: 4px solid #ef4444;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⚛️ PhysForge</h1>
+            <p class="tagline">AI-Powered Physics Discovery Platform</p>
+        </header>
+        
+        <div class="card">
+            <h2>Upload Dataset</h2>
+            <div class="info-box">
+                <strong>📋 Format:</strong> CSV file with columns: <code>x</code>, <code>t</code>, <code>u</code><br>
+                <strong>📊 Example:</strong> Spatiotemporal data from PDEs (heat equation, wave equation, etc.)
+            </div>
+            
+            <div class="upload-zone" id="uploadZone">
+                <div style="font-size: 3em; margin-bottom: 15px;">📁</div>
+                <h3>Drop CSV file here or click to browse</h3>
+                <p style="margin-top: 10px; color: #666;">PhysForge will train a PINN and discover the governing equation</p>
+                <input type="file" id="fileInput" accept=".csv">
+            </div>
+            
+            <div id="uploadStatus" style="margin-top: 20px;"></div>
+        </div>
+        
+        <div class="card">
+            <h2>Training Jobs</h2>
+            <div id="jobsList" class="job-list">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p style="margin-top: 10px;">Loading jobs...</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card result-panel" id="resultPanel">
+            <h2>Results</h2>
+            <div id="resultContent"></div>
+        </div>
+    </div>
+    
+    <script>
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const uploadStatus = document.getElementById('uploadStatus');
+        const jobsList = document.getElementById('jobsList');
+        const resultPanel = document.getElementById('resultPanel');
+        const resultContent = document.getElementById('resultContent');
+        
+        let currentJobId = null;
+        let refreshInterval = null;
+        
+        // Upload zone interactions
+        uploadZone.addEventListener('click', () => fileInput.click());
+        
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+        
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+        
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                handleFileUpload(e.dataTransfer.files[0]);
+            }
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileUpload(e.target.files[0]);
+            }
+        });
+        
+        async function handleFileUpload(file) {
+            if (!file.name.endsWith('.csv')) {
+                uploadStatus.innerHTML = '<div class="error-box">❌ Please upload a CSV file</div>';
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            uploadStatus.innerHTML = '<div class="loading"><div class="spinner"></div><p>Uploading...</p></div>';
+            
+            try {
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    uploadStatus.innerHTML = `<div class="info-box">✅ Upload successful! Job ID: ${data.job_id}</div>`;
+                    currentJobId = data.job_id;
+                    loadJobs();
+                    startPolling();
+                } else {
+                    uploadStatus.innerHTML = `<div class="error-box">❌ Upload failed: ${data.detail}</div>`;
+                }
+            } catch (error) {
+                uploadStatus.innerHTML = `<div class="error-box">❌ Error: ${error.message}</div>`;
+            }
+        }
+        
+        async function loadJobs() {
+            try {
+                const response = await fetch('/api/jobs');
+                const jobs = await response.json();
+                
+                if (jobs.length === 0) {
+                    jobsList.innerHTML = '<p style="text-align: center; color: #666;">No jobs yet. Upload a dataset to get started!</p>';
+                    return;
+                }
+                
+                jobsList.innerHTML = jobs.map(job => `
+                    <div class="job-item ${job.status}" onclick="viewJobDetails('${job.id}')">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong>${job.dataset_name}</strong>
+                                <div style="margin-top: 5px; font-size: 0.9em; color: #666;">
+                                    ${new Date(job.created_at).toLocaleString()}
+                                </div>
+                            </div>
+                            <span class="status-badge status-${job.status}">${job.status.toUpperCase()}</span>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                jobsList.innerHTML = `<div class="error-box">❌ Failed to load jobs: ${error.message}</div>`;
+            }
+        }
+        
+        async function viewJobDetails(jobId) {
+            try {
+                const response = await fetch(`/api/jobs/${jobId}`);
+                const job = await response.json();
+                
+                if (job.status === 'completed' && job.result) {
+                    resultPanel.classList.add('active');
+                    resultContent.innerHTML = `
+                        <div class="equation-display">
+                            ${job.result.equation}
+                        </div>
+                        
+                        <div class="metrics">
+                            <div class="metric">
+                                <div class="metric-label">R² Score</div>
+                                <div class="metric-value">${job.result.r_squared.toFixed(6)}</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">MSE</div>
+                                <div class="metric-value">${job.result.mse.toExponential(2)}</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Active Terms</div>
+                                <div class="metric-value">${Object.keys(job.result.coefficients).length}</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Epochs</div>
+                                <div class="metric-value">${job.result.epochs}</div>
+                            </div>
+                        </div>
+                        
+                        ${Object.keys(job.result.coefficients).length > 0 ? `
+                        <h3>Discovered Coefficients</h3>
+                        <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; font-family: monospace; max-height: 200px; overflow-y: auto;">
+                            ${Object.entries(job.result.coefficients)
+                                .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
+                                .map(([term, coeff]) => `
+                                    <div style="padding: 5px 0; border-bottom: 1px solid #ddd;">
+                                        <span style="color: #667eea; font-weight: bold;">${term}</span> = 
+                                        <span style="color: ${coeff >= 0 ? '#27ae60' : '#e74c3c'};">${coeff >= 0 ? '+' : ''}${coeff.toFixed(6)}</span>
+                                    </div>
+                                `).join('')}
+                        </div>
+                        ` : '<p style="color: #e74c3c;">⚠️ No significant terms discovered (data may be too noisy or sparse)</p>'}
+                        
+                        
+                        <h3>Visualization</h3>
+                        <img src="/api/results/${jobId}/visualization" class="visualization" alt="Results">
+                    `;
+                    resultPanel.scrollIntoView({ behavior: 'smooth' });
+                } else if (job.status === 'failed') {
+                    resultPanel.classList.add('active');
+                    resultContent.innerHTML = `<div class="error-box">❌ Job failed: ${job.error}</div>`;
+                } else {
+                    resultPanel.classList.add('active');
+                    resultContent.innerHTML = `
+                        <div class="info-box">
+                            ⏳ Job is ${job.status}... Results will appear here when complete.
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                alert('Failed to load job details');
+            }
+        }
+        
+        function startPolling() {
+            if (refreshInterval) clearInterval(refreshInterval);
+            refreshInterval = setInterval(loadJobs, 3000);
+        }
+        
+        // Initial load
+        loadJobs();
+        startPolling();
+    </script>
+</body>
+</html>
