@@ -3,15 +3,74 @@
 [![License: Proprietary](https://img.shields.io/badge/License-Proprietary-red.svg)](LICENSE)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![React 18](https://img.shields.io/badge/react-18-blue.svg)](https://reactjs.org/)
-[![Status: Development](https://img.shields.io/badge/status-development-orange.svg)]()
+[![Demo: Live](https://img.shields.io/badge/demo-live-brightgreen.svg)](https://physforge.onrender.com)
 
-> **A platform concept for discovering mathematical laws governing physical systems from data using Physics-Informed Neural Networks and symbolic regression.**
+> **Automated discovery of governing equations from physics data using Physics-Informed Neural Networks and sparse regression.**
 
-PhysForge is an ambitious project aiming to automate scientific discovery by combining Physics-Informed Neural Networks (PINNs) with symbolic regression techniques. The goal is to enable researchers to upload experimental or simulation data and automatically train physics-aware neural networks, compute derivatives, and discover governing equations.
+---
 
-**⚠️ Current Status: In Development (Not Yet Tested)**
+## 🚀 Two Implementations: Choose Your Path
 
-This is a large-scale project (~15,000 lines of code) with most components implemented but not yet validated end-to-end. The architecture is designed but integration testing is still needed to verify everything works together as intended.
+PhysForge exists in two versions - a **working demo application** (production-ready) and a **scalable microservices platform** (architecture complete, needs integration testing).
+
+### ✅ Demo Application - **LIVE NOW**
+🌐 **Try it:** [https://physforge.onrender.com](https://physforge.onrender.com)
+
+**What it does:**
+- Upload CSV data → Train PINN → Discover equation (< 90 seconds)
+- Discovers PDEs: heat equation, Burgers, KdV, wave equation, and more
+- Real-time progress tracking and visualization
+- Zero setup required - just upload and go
+
+**Perfect for:**
+- Quick proof-of-concept testing
+- Learning how PINNs work
+- Portfolio demonstration
+- Research validation
+
+📂 **Code:** `app_simplified/` (500 lines, single Python file)  
+📖 **Status:** ✅ **PRODUCTION** - Deployed, tested, optimized
+
+---
+
+### 🏗️ Production Platform - **ARCHITECTURE READY**
+
+**What it will do:**
+- Multi-tenant SaaS with user authentication
+- Distributed job processing with GPU acceleration
+- Advanced equation discovery with PySR symbolic regression
+- Active learning and experiment design
+- Collaborative workspaces and team management
+
+**Perfect for:**
+- Research institutions with large datasets
+- Production SaaS applications
+- Multi-user concurrent processing
+- Enterprise deployments
+
+📂 **Code:** `backend/` + `frontend/` (15,000 lines, 10 microservices)  
+📖 **Status:** 🟡 **DEVELOPMENT** - Architecture complete, needs integration testing
+
+---
+
+## Quick Comparison
+
+| Feature | Demo App ([Try Now](https://physforge.onrender.com)) | Production Platform |
+|---------|------------------------------------------------------|---------------------|
+| **Status** | ✅ Live & working | 🟡 Needs integration testing |
+| **Setup** | Visit URL | Docker Compose (11 containers) |
+| **Time to Result** | 60-90 seconds | Configurable (GPU support) |
+| **Max Dataset** | 10K points | Unlimited (chunked processing) |
+| **Users** | Single-user demo | Multi-tenant with auth |
+| **Cost** | Free | $50-500+/month infrastructure |
+
+📄 **See [SCOPE_AND_VISION.md](SCOPE_AND_VISION.md) for complete comparison**
+
+---
+
+## About PhysForge
+
+PhysForge automates scientific discovery by combining Physics-Informed Neural Networks (PINNs) with sparse regression techniques. Upload experimental or simulation data and PhysForge will train a physics-aware neural network, compute derivatives, and discover the underlying governing equation.
 
 **🎯 Intended capabilities:**
 - **Automated workflow**: Raw data → trained PINN → discovered equations
@@ -49,29 +108,28 @@ This is a large-scale project (~15,000 lines of code) with most components imple
 - ⚠️ Redis job queue functionality
 - ⚠️ Frontend-backend integration
 
-See [CURRENT_STATUS.md](CURRENT_STATUS.md) for detailed progress.
-
 ---
 
-## 🎬 Working Demo
+## 🎬 Demo Application Details
 
-### Option 1: Simplified Full-Stack Application (Recommended)
+### Live Demo: https://physforge.onrender.com
 
-A complete working application in `app_simplified/` demonstrates the full PhysForge workflow:
+The working demo (`app_simplified/`) is a complete single-service application that proves PhysForge works end-to-end.
 
 **Features:**
 - 🌐 **Web Interface**: Upload CSV data via drag-and-drop
-- 🤖 **PINN Training**: Automatic physics-informed training (3,000 epochs)
+- 🤖 **PINN Training**: Automatic physics-informed training (500 epochs, ~60 seconds)
 - 🔬 **Equation Discovery**: Discovers governing PDEs using sparse regression
-- 📊 **Real-time Monitoring**: Watch jobs process and view results instantly
+- 📊 **Real-time Monitoring**: Progress tracking with loss updates every 100 epochs
+- 📈 **Visualization**: Automatic plots of results and discovered equations
 
 **Discovered Equation Types:**
-- Linear: `u`, `u_x`, `u_t`
-- Nonlinear: `u²`, `u·u_x` (Burgers), `u_x²`
-- Higher derivatives: `u_xx`, `u_xxx` (KdV), `u_tt` (wave)
+- Linear: `u`, `u_x`, `u_t`, `u_xx` (heat equation)
+- Nonlinear: `u²`, `u·u_x` (Burgers equation), `u_x²`
+- Higher derivatives: `u_xxx` (KdV equation), `u_tt` (wave equation)
 - Mixed: `u_xt`, `u·u_xx`
 
-**To run:**
+**To run locally:**
 ```bash
 cd app_simplified
 python generate_sample_data.py  # Create test data
@@ -82,19 +140,62 @@ python app.py                    # Start server
 # Watch it train and discover: u_t = 0.010000·u_xx
 ```
 
-**Performance:** ~2 minutes from upload to discovered equation on CPU.
+**Performance:** 60-90 seconds from upload to discovered equation on CPU.
 
-**🚀 Deploy it yourself:** See [app_simplified/DEPLOYMENT.md](app_simplified/DEPLOYMENT.md) for one-click deployment to Render (free hosting).
-
-**Why simplified?** See [SIMPLIFIED_VS_MAIN.md](SIMPLIFIED_VS_MAIN.md) for detailed comparison with the main platform.
-
-**Technical details:** [app_simplified/EQUATION_DISCOVERY.md](app_simplified/EQUATION_DISCOVERY.md) explains the discovery algorithm.
+**� Documentation:**
+- [DEPLOYMENT.md](app_simplified/DEPLOYMENT.md) - Deploy to Render (free hosting)
+- [EQUATION_DISCOVERY.md](app_simplified/EQUATION_DISCOVERY.md) - How the algorithm works
+- [SCOPE_AND_VISION.md](SCOPE_AND_VISION.md) - Demo vs. production comparison
 
 ---
 
-### Option 2: Minimal PINN Demo
+## 🏗️ Production Platform Architecture
 
-A standalone script (`demo_minimal_pinn.py`) demonstrates core PINN training:
+The production platform (`backend/` + `frontend/`) is designed for enterprise-scale deployment with 10 microservices.
+
+**Architecture:**
+```
+React Frontend (TypeScript + Mantine)
+         ↓
+   API Gateway (Nginx)
+         ↓
+    ┌────┴────┬─────────────┬──────────┐
+    ↓         ↓             ↓          ↓
+Auth      Data Mgmt    Job Queue   Reporting
+Service   Service      (Redis)     Service
+    ↓         ↓             ↓          ↓
+    └─────────┴─────────────┴──────────┘
+              ↓
+        Worker Pool
+     ┌────┬────┬────┐
+PINN  Deriv  PDE   Active
+Train Comp   Disc  Learn
+```
+
+**10 Microservices:**
+1. **Auth Service** - OAuth2, JWT, RBAC, team management
+2. **Data Management** - S3/MinIO, HDF5/NetCDF, versioning
+3. **Job Orchestration** - Redis Queue, distributed workers
+4. **PINN Training** - GPU clusters, distributed training
+5. **Derivative Service** - Automatic differentiation
+6. **PDE Discovery** - PySR symbolic regression
+7. **Active Learning** - Bayesian experiment design
+8. **Reporting** - LaTeX/PDF generation
+9. **CLI Service** - Command-line interface
+10. **Audit Service** - Compliance and reproducibility
+
+**Status:** 🟡 Architecture complete (~15K lines), needs integration testing (40-80 hours)
+
+**Documentation:**
+- [architecture.md](architecture.md) - Detailed service architecture
+- [CURRENT_STATUS.md](CURRENT_STATUS.md) - Implementation progress
+- [SCOPE_AND_VISION.md](SCOPE_AND_VISION.md) - Roadmap and vision
+
+---
+
+### Minimal PINN Demo
+
+A standalone script (`demo_minimal_pinn.py`) demonstrates core PINN training without any web interface:
 
 **To run:**
 ```bash
