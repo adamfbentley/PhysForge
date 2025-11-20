@@ -7,64 +7,76 @@
 
 > **Automated discovery of governing equations from physics data using Physics-Informed Neural Networks and sparse regression.**
 
+📖 **Navigation:** This repository contains **4 versions** of PhysForge. See **[VERSIONS.md](VERSIONS.md)** for the complete guide.
+
 ---
 
-## 🚀 Two Implementations: Choose Your Path
+## 🚀 Four Versions: Choose Your Path
 
-PhysForge exists in two versions - a **working demo application** (production-ready) and a **scalable microservices platform** (architecture complete, needs integration testing).
+PhysForge has evolved through multiple iterations, each serving a different purpose.
 
-### ✅ Demo Application - **LIVE NOW**
-🌐 **Try it:** [https://physforge.onrender.com](https://physforge.onrender.com)
+### 1. ✅ Demo Application - **DEPLOYED**
+🌐 **Try it:** [https://physforge.onrender.com](https://physforge.onrender.com)  
+📂 **Location:** `app_simplified/` (500 lines)
 
 **What it does:**
-- Upload CSV data → Train PINN → Discover equation (< 90 seconds)
-- Discovers PDEs: heat equation, Burgers, KdV, wave equation, and more
-- Real-time progress tracking and visualization
-- Zero setup required - just upload and go
+- Upload CSV → Train PINN → Discover equation (< 90 seconds)
+- Sparse regression only (no PySR)
+- Real-time progress tracking
+- Zero setup required
 
-**Perfect for:**
-- Quick proof-of-concept testing
-- Learning how PINNs work
-- Portfolio demonstration
-- Research validation
-
-📂 **Code:** `app_simplified/` (500 lines, single Python file)  
-📖 **Status:** ✅ **PRODUCTION** - Deployed, tested, optimized
+**Use for:** Quick demos, teaching, portfolio, linear PDEs
 
 ---
 
-### 🏗️ Production Platform - **ARCHITECTURE READY**
+### 2. ⚠️ Research Prototype (Legacy) - **SUPERSEDED**
+📂 **Location:** `app_research/` (800 lines)
 
-**What it will do:**
-- Multi-tenant SaaS with user authentication
-- Distributed job processing with GPU acceleration
-- Advanced equation discovery with PySR symbolic regression
-- Active learning and experiment design
-- Collaborative workspaces and team management
+**Status:** Early research prototype, superseded by version 4 below.  
+**Use for:** Reference only - see PhysForge_Research for actual research work.
 
-**Perfect for:**
-- Research institutions with large datasets
-- Production SaaS applications
-- Multi-user concurrent processing
-- Enterprise deployments
+---
 
-📂 **Code:** `backend/` + `frontend/` (15,000 lines, 10 microservices)  
-📖 **Status:** 🟡 **DEVELOPMENT** - Architecture complete, needs integration testing
+### 3. 🏗️ Production Platform - **UNTESTED**
+📂 **Location:** `backend/` + `frontend/` (15,000 lines, 10 microservices)
+
+**What it has:**
+- Multi-tenant SaaS with authentication
+- Job queue with GPU support
+- Active learning module
+- Audit logging for compliance
+
+**Use for:** Enterprise deployment, commercial SaaS, multi-user platforms  
+**Status:** Architecture complete, needs 2-3 months integration testing
+
+---
+
+### 4. ✅ Research Edition (Standalone) - **TESTED & VALIDATED**
+📂 **Location:** `../PhysForge_Research/` (separate repository, 2000 lines)
+
+**What it has:**
+- Unified discovery engine (PINN + sparse + PySR)
+- Model comparison (AIC/BIC ranking)
+- Uncertainty quantification (bootstrap CI)
+- 93.3% test pass rate (14/15 tests)
+- 7 benchmark PDE datasets
+
+**Use for:** Research papers, complex equations, systematic benchmarking  
+**Status:** Production-ready for research use
 
 ---
 
 ## Quick Comparison
 
-| Feature | Demo App ([Try Now](https://physforge.onrender.com)) | Production Platform |
-|---------|------------------------------------------------------|---------------------|
-| **Status** | ✅ Live & working | 🟡 Needs integration testing |
-| **Setup** | Visit URL | Docker Compose (11 containers) |
-| **Time to Result** | 60-90 seconds | Configurable (GPU support) |
-| **Max Dataset** | 10K points | Unlimited (chunked processing) |
-| **Users** | Single-user demo | Multi-tenant with auth |
-| **Cost** | Free | $50-500+/month infrastructure |
+| Version | Status | Location | Lines | Use Case |
+|---------|--------|----------|-------|----------|
+| **1. Demo** | ✅ Deployed | `app_simplified/` | 500 | Quick demos |
+| **2. Research (old)** | ⚠️ Legacy | `app_research/` | 800 | Reference only |
+| **3. Production** | ❌ Untested | `backend/` | 15K | Enterprise SaaS |
+| **4. Research (new)** | ✅ Tested | `../PhysForge_Research/` | 2K | Research papers |
 
-📄 **See [SCOPE_AND_VISION.md](SCOPE_AND_VISION.md) for complete comparison**
+📄 **See [VERSIONS.md](VERSIONS.md) for detailed navigation guide**  
+📄 **See [VERSION_COMPARISON.md](VERSION_COMPARISON.md) for feature comparison**
 
 ---
 

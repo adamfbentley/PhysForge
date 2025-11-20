@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+torch
+numpy
+pandas
+matplotlib
+python-multipart
+pysr>=0.18.0
+scipy

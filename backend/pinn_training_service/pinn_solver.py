@@ -435,3 +435,28 @@ class PinnSolver:
             "ic_loss": loss_ic.item(),
             "regularization_loss": loss_regularization.item() # Add regularization loss to metrics
         }
+    
+    def train_step(self, x_data: torch.Tensor, y_data: torch.Tensor) -> float:
+        """
+        Perform a single training step.
+        
+        Args:
+            x_data: Input coordinates (batch_size, input_dim)
+            y_data: Target values (batch_size, output_dim)
+            
+        Returns:
+            Loss value for this step
+        """
+        self.optimizer.zero_grad()
+        
+        # Forward pass
+        y_pred = self.model(x_data)
+        
+        # Compute data loss
+        loss = self.loss_fn(y_pred, y_data)
+        
+        # Backward pass
+        loss.backward()
+        self.optimizer.step()
+        
+        return loss.item()

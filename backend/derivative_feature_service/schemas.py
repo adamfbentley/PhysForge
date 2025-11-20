@@ -49,6 +49,32 @@ class DerivativeJobConfig(BaseModel):
     generate_feature_library: bool = Field(False, description="Whether to generate and save a feature library (STORY-303).")
     feature_library_config: Optional[FeatureLibraryConfig] = Field(None, description="Configuration for generating the feature library (STORY-303).")
 
+# Simplified API schemas for direct REST calls
+class DerivativeRequest(BaseModel):
+    """Request to compute derivatives from a PINN model."""
+    model_id: str = Field(..., description="ID of the trained PINN model")
+    x_data: List[float] = Field(..., description="Spatial coordinates")
+    t_data: List[float] = Field(..., description="Temporal coordinates")
+    derivative_orders: List[int] = Field([1, 2], description="Orders of derivatives to compute")
+
+class DerivativeResponse(BaseModel):
+    """Response after submitting derivative computation."""
+    job_id: str
+    status: str
+    message: str
+
+class FeatureRequest(BaseModel):
+    """Request to generate feature library."""
+    derivative_result_id: str = Field(..., description="ID of computed derivatives")
+    polynomial_degree: int = Field(3, ge=1, description="Maximum polynomial degree")
+    include_cross_terms: bool = Field(True, description="Include cross-product terms")
+
+class FeatureResponse(BaseModel):
+    """Response after submitting feature generation."""
+    job_id: str
+    status: str
+    message: str
+
 class DerivativeResult(BaseModel):
     job_id: int = Field(..., description="ID of the job that produced this result.")
     results_path: str = Field(..., description="Path to the saved derivative results (e.g., HDF5) in object storage.")
