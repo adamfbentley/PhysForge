@@ -335,6 +335,9 @@
                 <h2>Training Logs</h2>
                 <button class="btn" onclick="clearLogs()" style="padding: 8px 16px; font-size: 0.9em;">Clear Logs</button>
             </div>
+            <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; padding: 10px; margin-bottom: 15px; font-size: 0.9em;">
+                <strong>ℹ️ Note:</strong> Logs show real-time progress during training. On free hosting (Render), the server may sleep after inactivity, causing logs to stop updating. The job will resume when the server wakes.
+            </div>
             <div id="progressInfo" style="margin-bottom: 15px;"></div>
             <div class="logs-panel active" id="logsPanel">
                 <div style="text-align: center; color: #858585;">Waiting for training to start...</div>
@@ -455,6 +458,12 @@
                 const response = await fetch(`/api/jobs/${jobId}`);
                 const job = await response.json();
                 
+                // Show logs if job is processing
+                if (job.status === 'processing' || job.status === 'queued') {
+                    currentJobId = jobId;
+                    startProgressMonitoring(jobId);
+                }
+                
                 if (job.status === 'completed' && job.result) {
                     resultPanel.classList.add('active');
                     resultContent.innerHTML = `
@@ -527,6 +536,9 @@
             
             if (progressInterval) clearInterval(progressInterval);
             
+            let noProgressCount = 0;
+            const MAX_NO_PROGRESS = 10; // Hide after 20 seconds of no progress
+            
             progressInterval = setInterval(async () => {
                 try {
                     const response = await fetch(`/api/jobs/${jobId}/progress`);
@@ -535,6 +547,13 @@
                     if (progress.stage !== 'unknown') {
                         updateProgressDisplay(progress);
                         addLogEntry(progress);
+                        noProgressCount = 0; // Reset counter
+                    } else {
+                        noProgressCount++;
+                        if (noProgressCount >= MAX_NO_PROGRESS) {
+                            // Hide logs after extended period of no progress
+                            logsCard.style.display = 'none';
+                        }
                     }
                     
                     // Stop monitoring if job is complete
@@ -548,10 +567,24 @@
                                 message: '✅ Training complete! Equation discovered successfully.',
                                 progress: '100%'
                             });
+                            // Keep logs visible for completed jobs
+                            logsCard.style.display = 'block';
+                        } else if (job.status === 'failed') {
+                            addLogEntry({
+                                stage: 'error',
+                                message: `❌ Training failed: ${job.error || 'Unknown error'}`,
+                                progress: '0%'
+                            });
+                            logsCard.style.display = 'block';
                         }
                     }
                 } catch (error) {
                     console.error('Failed to fetch progress:', error);
+                    addLogEntry({
+                        stage: 'warning',
+                        message: '⚠️ Connection lost. Server may be sleeping (free tier). Retrying...',
+                        progress: '0%'
+                    });
                 }
             }, 2000); // Poll every 2 seconds
         }
