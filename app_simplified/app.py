@@ -119,7 +119,7 @@ def compute_derivatives(model, x, t):
         'u_xxx': u_xxx
     }
 
-def train_pinn_on_data(x_data, t_data, u_data, epochs=1000):
+def train_pinn_on_data(x_data, t_data, u_data, epochs=500):
     """Train PINN on provided data with equation-agnostic physics loss
     
     Uses weak-form physics loss that doesn't assume specific equation.
@@ -133,6 +133,8 @@ def train_pinn_on_data(x_data, t_data, u_data, epochs=1000):
     u_tensor = torch.tensor(u_data, dtype=torch.float32).reshape(-1, 1)
     
     losses = []
+    
+    print(f"Starting PINN training: {epochs} epochs, {len(x_data)} data points")
     
     for epoch in range(epochs):
         optimizer.zero_grad()
@@ -157,9 +159,12 @@ def train_pinn_on_data(x_data, t_data, u_data, epochs=1000):
         
         losses.append(loss.item())
         
-        # Memory cleanup every 100 epochs
+        # Progress logging and memory cleanup
         if epoch % 100 == 0:
+            print(f"  Epoch {epoch}/{epochs}, Loss: {loss.item():.6f}")
             torch.cuda.empty_cache() if torch.cuda.is_available() else None
+    
+    print(f"Training complete. Final loss: {losses[-1]:.6f}")
     
     return model, losses
 
@@ -175,6 +180,8 @@ def discover_equation(model, x_data, t_data, sample_size=300, threshold=0.01):
         r_squared: Goodness of fit
         terms_tested: All terms that were considered
     """
+    print(f"Starting equation discovery with {sample_size} sample points")
+    
     # Sample random points for discovery
     indices = np.random.choice(len(x_data), size=min(sample_size, len(x_data)), replace=False)
     x_sample = x_data[indices]
@@ -230,6 +237,8 @@ def discover_equation(model, x_data, t_data, sample_size=300, threshold=0.01):
     # Threshold small coefficients (sparsity)
     max_coeff = np.max(np.abs(coeffs))
     coeffs[np.abs(coeffs) < threshold * max_coeff] = 0
+    
+    print(f"  Sparse regression complete. Found {np.sum(coeffs != 0)} active terms.")
     
     # Build equation string
     active_terms = []
@@ -370,7 +379,7 @@ def process_job(job_id: str, filepath: str):
         u_data = df['u'].values
         
         # Train PINN
-        model, losses = train_pinn_on_data(x_data, t_data, u_data, epochs=1000)
+        model, losses = train_pinn_on_data(x_data, t_data, u_data, epochs=500)
         
         # Discover equation
         equation_str, coefficients, r_squared, all_terms = discover_equation(model, x_data, t_data)
