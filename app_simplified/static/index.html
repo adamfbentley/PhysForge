@@ -237,6 +237,63 @@
             border-radius: 6px;
             margin: 20px 0;
         }
+        
+        .logs-panel {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            border-radius: 8px;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .logs-panel.active {
+            display: block;
+        }
+        
+        .log-entry {
+            padding: 4px 0;
+            border-bottom: 1px solid #333;
+        }
+        
+        .log-timestamp {
+            color: #858585;
+            margin-right: 8px;
+        }
+        
+        .log-level-info {
+            color: #4ec9b0;
+        }
+        
+        .log-level-warning {
+            color: #dcdcaa;
+        }
+        
+        .log-level-error {
+            color: #f48771;
+        }
+        
+        .log-level-success {
+            color: #89d185;
+        }
+        
+        .progress-bar-container {
+            background: #2d2d2d;
+            border-radius: 4px;
+            height: 6px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            height: 100%;
+            transition: width 0.3s ease;
+        }
     </style>
 </head>
 <body>
@@ -273,6 +330,17 @@
             </div>
         </div>
         
+        <div class="card" id="logsCard" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h2>Training Logs</h2>
+                <button class="btn" onclick="clearLogs()" style="padding: 8px 16px; font-size: 0.9em;">Clear Logs</button>
+            </div>
+            <div id="progressInfo" style="margin-bottom: 15px;"></div>
+            <div class="logs-panel active" id="logsPanel">
+                <div style="text-align: center; color: #858585;">Waiting for training to start...</div>
+            </div>
+        </div>
+        
         <div class="card result-panel" id="resultPanel">
             <h2>Results</h2>
             <div id="resultContent"></div>
@@ -289,6 +357,11 @@
         
         let currentJobId = null;
         let refreshInterval = null;
+        let progressInterval = null;
+        const logsCard = document.getElementById('logsCard');
+        const logsPanel = document.getElementById('logsPanel');
+        const progressInfo = document.getElementById('progressInfo');
+        let logEntries = [];
         
         // Upload zone interactions
         uploadZone.addEventListener('click', () => fileInput.click());
@@ -340,6 +413,7 @@
                     currentJobId = data.job_id;
                     loadJobs();
                     startPolling();
+                    startProgressMonitoring(data.job_id);
                 } else {
                     uploadStatus.innerHTML = `<div class="error-box">❌ Upload failed: ${data.detail}</div>`;
                 }
@@ -445,6 +519,105 @@
         function startPolling() {
             if (refreshInterval) clearInterval(refreshInterval);
             refreshInterval = setInterval(loadJobs, 3000);
+        }
+        
+        async function startProgressMonitoring(jobId) {
+            logsCard.style.display = 'block';
+            logsPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            
+            if (progressInterval) clearInterval(progressInterval);
+            
+            progressInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`/api/jobs/${jobId}/progress`);
+                    const progress = await response.json();
+                    
+                    if (progress.stage !== 'unknown') {
+                        updateProgressDisplay(progress);
+                        addLogEntry(progress);
+                    }
+                    
+                    // Stop monitoring if job is complete
+                    const jobResponse = await fetch(`/api/jobs/${jobId}`);
+                    const job = await jobResponse.json();
+                    if (job.status === 'completed' || job.status === 'failed') {
+                        clearInterval(progressInterval);
+                        if (job.status === 'completed') {
+                            addLogEntry({
+                                stage: 'complete',
+                                message: '✅ Training complete! Equation discovered successfully.',
+                                progress: '100%'
+                            });
+                        }
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch progress:', error);
+                }
+            }, 2000); // Poll every 2 seconds
+        }
+        
+        function updateProgressDisplay(progress) {
+            let progressPercent = 0;
+            let statusText = '';
+            
+            if (progress.stage === 'training') {
+                const match = progress.progress.match(/(\d+)\/(\d+)/);
+                if (match) {
+                    const current = parseInt(match[1]);
+                    const total = parseInt(match[2]);
+                    progressPercent = (current / total) * 100;
+                    statusText = `Training PINN: ${current}/${total} epochs`;
+                }
+            } else if (progress.stage === 'training_complete') {
+                progressPercent = 100;
+                statusText = 'Training complete';
+            } else if (progress.stage === 'discovery') {
+                progressPercent = 100;
+                statusText = 'Discovering equation...';
+            }
+            
+            progressInfo.innerHTML = `
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                    <span style="font-weight: 500;">${statusText}</span>
+                    <span style="color: #667eea;">${progressPercent.toFixed(0)}%</span>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" style="width: ${progressPercent}%"></div>
+                </div>
+            `;
+        }
+        
+        let lastLogMessage = '';
+        function addLogEntry(progress) {
+            // Avoid duplicate consecutive messages
+            if (progress.message === lastLogMessage) return;
+            lastLogMessage = progress.message;
+            
+            const timestamp = new Date().toLocaleTimeString();
+            const levelClass = progress.stage === 'complete' ? 'success' : 
+                              progress.stage === 'discovery' ? 'warning' : 'info';
+            
+            const logHtml = `
+                <div class="log-entry">
+                    <span class="log-timestamp">[${timestamp}]</span>
+                    <span class="log-level-${levelClass}">${progress.message}</span>
+                </div>
+            `;
+            
+            logEntries.push(logHtml);
+            
+            // Keep last 50 entries
+            if (logEntries.length > 50) {
+                logEntries.shift();
+            }
+            
+            logsPanel.innerHTML = logEntries.join('');
+            logsPanel.scrollTop = logsPanel.scrollHeight;
+        }
+        
+        function clearLogs() {
+            logEntries = [];
+            logsPanel.innerHTML = '<div style="text-align: center; color: #858585;">Logs cleared</div>';
         }
         
         // Initial load

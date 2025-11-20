@@ -140,7 +140,11 @@ def train_pinn_on_data(x_data, t_data, u_data, epochs=500, job_id=None):
     
     print(f"Starting PINN training: {epochs} epochs, {len(x_data)} data points", flush=True)
     if job_id:
-        processing_status[job_id] = {"stage": "training", "progress": "0/500", "message": "Starting training..."}
+        processing_status[job_id] = {
+            "stage": "training",
+            "progress": f"0/{epochs}",
+            "message": f"🚀 Starting PINN training with {len(x_data)} data points..."
+        }
     
     for epoch in range(epochs):
         optimizer.zero_grad()
@@ -169,16 +173,21 @@ def train_pinn_on_data(x_data, t_data, u_data, epochs=500, job_id=None):
         if epoch % 100 == 0:
             print(f"  Epoch {epoch}/{epochs}, Loss: {loss.item():.6f}", flush=True)
             if job_id:
+                percent = (epoch / epochs) * 100
                 processing_status[job_id] = {
                     "stage": "training",
                     "progress": f"{epoch}/{epochs}",
-                    "message": f"Training... Loss: {loss.item():.6f}"
+                    "message": f"⚡ Epoch {epoch}/{epochs} ({percent:.0f}%) - Loss: {loss.item():.6f}"
                 }
             torch.cuda.empty_cache() if torch.cuda.is_available() else None
     
     print(f"Training complete. Final loss: {losses[-1]:.6f}", flush=True)
     if job_id:
-        processing_status[job_id] = {"stage": "training_complete", "progress": "500/500", "message": "Training complete"}
+        processing_status[job_id] = {
+            "stage": "training_complete",
+            "progress": f"{epochs}/{epochs}",
+            "message": f"✅ Training complete! Final loss: {losses[-1]:.6f}"
+        }
     
     return model, losses
 
@@ -196,7 +205,11 @@ def discover_equation(model, x_data, t_data, sample_size=300, threshold=0.01, jo
     """
     print(f"Starting equation discovery with {sample_size} sample points", flush=True)
     if job_id:
-        processing_status[job_id] = {"stage": "discovery", "progress": "0%", "message": "Analyzing derivatives..."}
+        processing_status[job_id] = {
+            "stage": "discovery",
+            "progress": "0%",
+            "message": f"🔬 Computing derivatives on {sample_size} sample points..."
+        }
     
     # Sample random points for discovery
     indices = np.random.choice(len(x_data), size=min(sample_size, len(x_data)), replace=False)
@@ -214,6 +227,13 @@ def discover_equation(model, x_data, t_data, sample_size=300, threshold=0.01, jo
     u_np = derivs['u'].detach().numpy().flatten()
     
     # Build library of candidate terms (right-hand side)
+    if job_id:
+        processing_status[job_id] = {
+            "stage": "discovery",
+            "progress": "50%",
+            "message": "📚 Building library of candidate terms (linear, nonlinear, derivatives)..."
+        }
+    
     library = {}
     
     # Linear terms
@@ -239,6 +259,13 @@ def discover_equation(model, x_data, t_data, sample_size=300, threshold=0.01, jo
     term_names = list(library.keys())
     X = np.column_stack([library[name] for name in term_names])
     
+    if job_id:
+        processing_status[job_id] = {
+            "stage": "discovery",
+            "progress": "50%",
+            "message": f"📊 Running sparse regression on {len(term_names)} candidate terms..."
+        }
+    
     # Normalize columns for numerical stability
     X_std = np.std(X, axis=0)
     X_std[X_std < 1e-10] = 1.0  # Avoid division by zero
@@ -256,7 +283,12 @@ def discover_equation(model, x_data, t_data, sample_size=300, threshold=0.01, jo
     
     print(f"  Sparse regression complete. Found {np.sum(coeffs != 0)} active terms.", flush=True)
     if job_id:
-        processing_status[job_id] = {"stage": "discovery", "progress": "100%", "message": f"Found {np.sum(coeffs != 0)} active terms"}
+        active_count = np.sum(coeffs != 0)
+        processing_status[job_id] = {
+            "stage": "discovery",
+            "progress": "100%",
+            "message": f"🎯 Equation discovered! Found {active_count} active term{'s' if active_count != 1 else ''}"
+        }
     
     # Build equation string
     active_terms = []
