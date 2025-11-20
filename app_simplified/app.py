@@ -119,13 +119,13 @@ def compute_derivatives(model, x, t):
         'u_xxx': u_xxx
     }
 
-def train_pinn_on_data(x_data, t_data, u_data, epochs=3000):
+def train_pinn_on_data(x_data, t_data, u_data, epochs=1000):
     """Train PINN on provided data with equation-agnostic physics loss
     
     Uses weak-form physics loss that doesn't assume specific equation.
     The physics is discovered after training via sparse regression.
     """
-    model = PINN(layers=[2, 32, 32, 32, 1])
+    model = PINN(layers=[2, 20, 20, 1])  # Smaller network for memory efficiency
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     
     x_tensor = torch.tensor(x_data, dtype=torch.float32).reshape(-1, 1)
@@ -156,10 +156,14 @@ def train_pinn_on_data(x_data, t_data, u_data, epochs=3000):
         optimizer.step()
         
         losses.append(loss.item())
+        
+        # Memory cleanup every 100 epochs
+        if epoch % 100 == 0:
+            torch.cuda.empty_cache() if torch.cuda.is_available() else None
     
     return model, losses
 
-def discover_equation(model, x_data, t_data, sample_size=500, threshold=0.01):
+def discover_equation(model, x_data, t_data, sample_size=300, threshold=0.01):
     """Discover PDE equation from trained PINN using sparse regression
     
     Builds a library of candidate terms and uses least squares with
@@ -366,7 +370,7 @@ def process_job(job_id: str, filepath: str):
         u_data = df['u'].values
         
         # Train PINN
-        model, losses = train_pinn_on_data(x_data, t_data, u_data, epochs=3000)
+        model, losses = train_pinn_on_data(x_data, t_data, u_data, epochs=1000)
         
         # Discover equation
         equation_str, coefficients, r_squared, all_terms = discover_equation(model, x_data, t_data)
