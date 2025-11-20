@@ -19,6 +19,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import pandas as pd
+import sys
 import matplotlib
 matplotlib.use('Agg')  # Non-interactive backend
 import matplotlib.pyplot as plt
@@ -33,6 +34,9 @@ import uuid
 os.makedirs("uploads", exist_ok=True)
 os.makedirs("results", exist_ok=True)
 os.makedirs("static", exist_ok=True)
+
+# Global status tracker for real-time progress
+processing_status = {}
 
 app = FastAPI(title="PhysForge", version="1.0.0")
 
@@ -119,7 +123,7 @@ def compute_derivatives(model, x, t):
         'u_xxx': u_xxx
     }
 
-def train_pinn_on_data(x_data, t_data, u_data, epochs=500):
+def train_pinn_on_data(x_data, t_data, u_data, epochs=500, job_id=None):
     """Train PINN on provided data with equation-agnostic physics loss
     
     Uses weak-form physics loss that doesn't assume specific equation.
@@ -134,7 +138,9 @@ def train_pinn_on_data(x_data, t_data, u_data, epochs=500):
     
     losses = []
     
-    print(f"Starting PINN training: {epochs} epochs, {len(x_data)} data points")
+    print(f"Starting PINN training: {epochs} epochs, {len(x_data)} data points", flush=True)
+    if job_id:
+        processing_status[job_id] = {"stage": "training", "progress": "0/500", "message": "Starting training..."}
     
     for epoch in range(epochs):
         optimizer.zero_grad()
@@ -161,14 +167,22 @@ def train_pinn_on_data(x_data, t_data, u_data, epochs=500):
         
         # Progress logging and memory cleanup
         if epoch % 100 == 0:
-            print(f"  Epoch {epoch}/{epochs}, Loss: {loss.item():.6f}")
+            print(f"  Epoch {epoch}/{epochs}, Loss: {loss.item():.6f}", flush=True)
+            if job_id:
+                processing_status[job_id] = {
+                    "stage": "training",
+                    "progress": f"{epoch}/{epochs}",
+                    "message": f"Training... Loss: {loss.item():.6f}"
+                }
             torch.cuda.empty_cache() if torch.cuda.is_available() else None
     
-    print(f"Training complete. Final loss: {losses[-1]:.6f}")
+    print(f"Training complete. Final loss: {losses[-1]:.6f}", flush=True)
+    if job_id:
+        processing_status[job_id] = {"stage": "training_complete", "progress": "500/500", "message": "Training complete"}
     
     return model, losses
 
-def discover_equation(model, x_data, t_data, sample_size=300, threshold=0.01):
+def discover_equation(model, x_data, t_data, sample_size=300, threshold=0.01, job_id=None):
     """Discover PDE equation from trained PINN using sparse regression
     
     Builds a library of candidate terms and uses least squares with
@@ -180,7 +194,9 @@ def discover_equation(model, x_data, t_data, sample_size=300, threshold=0.01):
         r_squared: Goodness of fit
         terms_tested: All terms that were considered
     """
-    print(f"Starting equation discovery with {sample_size} sample points")
+    print(f"Starting equation discovery with {sample_size} sample points", flush=True)
+    if job_id:
+        processing_status[job_id] = {"stage": "discovery", "progress": "0%", "message": "Analyzing derivatives..."}
     
     # Sample random points for discovery
     indices = np.random.choice(len(x_data), size=min(sample_size, len(x_data)), replace=False)
@@ -238,7 +254,9 @@ def discover_equation(model, x_data, t_data, sample_size=300, threshold=0.01):
     max_coeff = np.max(np.abs(coeffs))
     coeffs[np.abs(coeffs) < threshold * max_coeff] = 0
     
-    print(f"  Sparse regression complete. Found {np.sum(coeffs != 0)} active terms.")
+    print(f"  Sparse regression complete. Found {np.sum(coeffs != 0)} active terms.", flush=True)
+    if job_id:
+        processing_status[job_id] = {"stage": "discovery", "progress": "100%", "message": f"Found {np.sum(coeffs != 0)} active terms"}
     
     # Build equation string
     active_terms = []
@@ -379,10 +397,10 @@ def process_job(job_id: str, filepath: str):
         u_data = df['u'].values
         
         # Train PINN
-        model, losses = train_pinn_on_data(x_data, t_data, u_data, epochs=500)
+        model, losses = train_pinn_on_data(x_data, t_data, u_data, epochs=500, job_id=job_id)
         
         # Discover equation
-        equation_str, coefficients, r_squared, all_terms = discover_equation(model, x_data, t_data)
+        equation_str, coefficients, r_squared, all_terms = discover_equation(model, x_data, t_data, job_id=job_id)
         
         # Create visualization
         viz_path = create_visualization(model, x_data, t_data, u_data, losses, 
@@ -477,6 +495,9 @@ async def get_job_status(job_id: str):
     
     result_data = json.loads(row[6]) if row[6] else None
     
+    # Add real-time processing status if available
+    processing_info = processing_status.get(job_id, None)
+    
     return {
         "id": row[0],
         "status": row[1],
@@ -484,8 +505,16 @@ async def get_job_status(job_id: str):
         "created_at": row[3],
         "completed_at": row[4],
         "error": row[5],
-        "result": result_data
+        "result": result_data,
+        "processing": processing_info  # Real-time progress
     }
+
+@app.get("/api/jobs/{job_id}/progress")
+async def get_job_progress(job_id: str):
+    """Get real-time processing progress for a job"""
+    if job_id in processing_status:
+        return processing_status[job_id]
+    return {"stage": "unknown", "progress": "N/A", "message": "No progress data available"}
 
 @app.get("/api/jobs")
 async def list_jobs():
