@@ -172,14 +172,16 @@ def train_pinn_on_data(x_data, t_data, u_data, epochs=500, job_id=None):
         # Progress logging and memory cleanup
         if epoch % 100 == 0:
             print(f"  Epoch {epoch}/{epochs}, Loss: {loss.item():.6f}", flush=True)
-            if job_id:
-                percent = (epoch / epochs) * 100
-                processing_status[job_id] = {
-                    "stage": "training",
-                    "progress": f"{epoch}/{epochs}",
-                    "message": f"⚡ Epoch {epoch}/{epochs} ({percent:.0f}%) - Loss: {loss.item():.6f}"
-                }
             torch.cuda.empty_cache() if torch.cuda.is_available() else None
+        
+        # Update progress more frequently for UI (every 10 epochs or first epoch)
+        if job_id and (epoch % 10 == 0 or epoch == 1):
+            percent = (epoch / epochs) * 100
+            processing_status[job_id] = {
+                "stage": "training",
+                "progress": f"{epoch}/{epochs}",
+                "message": f"⚡ Epoch {epoch}/{epochs} ({percent:.1f}%) - Loss: {loss.item():.6f}"
+            }
     
     print(f"Training complete. Final loss: {losses[-1]:.6f}", flush=True)
     if job_id:
@@ -457,24 +459,40 @@ def process_job(job_id: str, filepath: str):
             "visualization": viz_path
         }
         
+        result_json = json.dumps(result)
+        print(f"Storing result (length: {len(result_json)} chars): {result_json[:200]}...", flush=True)
+        
         c.execute("""
             UPDATE jobs 
             SET status = 'completed', 
                 completed_at = ?,
                 result_data = ?
             WHERE id = ?
-        """, (datetime.now().isoformat(), json.dumps(result), job_id))
+        """, (datetime.now().isoformat(), result_json, job_id))
         conn.commit()
         
+        print(f"✅ Job {job_id} completed successfully", flush=True)
+        print(f"   Equation: {equation_str}", flush=True)
+        print(f"   R²: {r_squared:.6f}", flush=True)
+        print(f"   Active terms: {len(coefficients)}", flush=True)
+        
     except Exception as e:
-        c.execute("""
-            UPDATE jobs 
-            SET status = 'failed', 
-                error = ?,
-                completed_at = ?
-            WHERE id = ?
-        """, (str(e), datetime.now().isoformat(), job_id))
-        conn.commit()
+        error_msg = f"{type(e).__name__}: {str(e)}"
+        print(f"❌ Job {job_id} failed: {error_msg}", flush=True)
+        import traceback
+        traceback.print_exc()
+        
+        try:
+            c.execute("""
+                UPDATE jobs 
+                SET status = 'failed', 
+                    error = ?,
+                    completed_at = ?
+                WHERE id = ?
+            """, (error_msg, datetime.now().isoformat(), job_id))
+            conn.commit()
+        except Exception as db_error:
+            print(f"❌ Failed to update job status: {db_error}", flush=True)
     
     finally:
         conn.close()
