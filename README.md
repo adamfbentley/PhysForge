@@ -1,96 +1,35 @@
-# PhysForge: Physics-Informed Neural Network Discovery Platform
+# PhysForge: Automated PDE Discovery
 
 [![Demo: Live](https://img.shields.io/badge/demo-live-brightgreen.svg)](https://physforge.onrender.com)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![React 18](https://img.shields.io/badge/react-18-blue.svg)](https://reactjs.org/)
 
-Automated discovery of governing equations from spatiotemporal data using Physics-Informed Neural Networks (PINNs) and sparse regression.
+Discover governing equations from spatiotemporal data using Physics-Informed Neural Networks (PINNs) and sparse regression.
 
-**Live Demo:** https://physforge.onrender.com
+**🔗 Live Demo:** https://physforge.onrender.com
 
 ---
 
 ## Overview
 
-PhysForge combines physics-informed machine learning with symbolic regression to automatically discover partial differential equations from experimental or simulation data. Upload CSV data, train a physics-aware neural network, and extract the governing equations.
+PhysForge automatically discovers partial differential equations from CSV data using physics-informed machine learning. Upload spatiotemporal measurements, train a neural network constrained by physics, and extract the governing equation.
 
-**Current Status:**
-- **Demo Application:** Deployed and functional at physforge.onrender.com
-- **Microservices Platform:** Architecture designed, individual services implemented, integration in progress
-- **Research Edition:** Separate repository with enhanced validation and benchmarking
-
----
-
-## Project Structure
-
-This repository contains three versions optimized for different use cases:
-
-### 1. Demo Application ✅ DEPLOYED
-**Location:** `app_simplified/` | **Live:** https://physforge.onrender.com
-
-Single-service application demonstrating core PINN training and sparse equation discovery workflow.
-
-**Features:**
-- CSV data upload for spatiotemporal datasets
-- Physics-Informed Neural Network training with automatic differentiation
-- Sparse regression for equation discovery
-- Real-time progress tracking
-- Complete workflow in <90 seconds on CPU
-
-**Technical Stack:** Python, PyTorch, FastAPI, NumPy, SciPy
-
-**Deployment:** Docker container on Render free tier
-
-**Use Case:** Quick demonstrations, teaching, portfolio showcase, testing on simple PDEs
-
----
-
-### 2. Microservices Platform 🚧 IN DEVELOPMENT
-**Location:** `backend/` + `frontend/`
-
-Production-oriented architecture with independent services for scalability and maintainability.
-
-**Architecture:**
-- 10 FastAPI microservices (Auth, Data Management, Job Orchestration, PINN Training, Derivatives, PDE Discovery, Active Learning, Reporting, CLI, Audit)
-- React 18 + TypeScript frontend with Mantine UI
-- PostgreSQL per-service with SQLAlchemy ORM
-- Redis + RQ for asynchronous job processing
-- MinIO for S3-compatible object storage
-- Prometheus + Grafana monitoring stack
-
-**Current State:**
-- Individual services implemented with FastAPI
-- Frontend components built with full type safety
-- Database schemas designed
-- Docker Compose orchestration configured
-- Integration testing in progress
-
-**Use Case:** Multi-user platforms, enterprise deployment, commercial SaaS applications
-
----
-
-### 3. Research Edition 📊 SEPARATE REPOSITORY
-**Location:** `../PhysForge_Research/`
-
-Enhanced version focused on research validation, benchmarking, and advanced algorithms.
-
-**Additional Features:**
-- Unified discovery engine (PINN + SINDy + PySR)
-- Model comparison with AIC/BIC ranking
-- Uncertainty quantification with bootstrap confidence intervals
-- Comprehensive test suite (14/15 tests passing)
-- 7 benchmark PDE datasets
-
-**Use Case:** Research publications, complex equations, systematic benchmarking
+**How it works:**
+1. Upload CSV with columns: x (space), t (time), u (field value)
+2. PINN trains while satisfying PDE structure
+3. Sparse regression identifies equation terms
+4. View discovered equation with quality metrics
 
 ---
 
 ## Quick Start
 
 ### Try the Live Demo
-Visit https://physforge.onrender.com and upload CSV data with columns: x, t, u (spatial coordinate, time, field value)
+Visit https://physforge.onrender.com and upload one of the sample datasets:
+- `sample_heat_equation.csv` - Diffusion process
+- `sample_burgers_equation.csv` - Nonlinear wave propagation
+- `sample_kdv_equation.csv` - Soliton dynamics
 
-### Run Demo Locally
+### Run Locally
 ```bash
 cd app_simplified
 pip install -r requirements.txt
@@ -98,119 +37,72 @@ python app.py
 ```
 Visit http://localhost:5000
 
-### Development Setup
-```bash
-# Clone repository
-git clone https://github.com/adamfbentley/PhysForge.git
-cd PhysForge
-
-# For microservices platform
-docker-compose up
-```
-
 ---
 
-## Technical Implementation
+## Technical Details
 
 ### Physics-Informed Neural Networks
-Custom PyTorch implementation enforcing PDE constraints through physics-informed loss:
-- Automatic differentiation for computing derivatives
-- Physics constraints incorporated in loss function
-- Support for 1st, 2nd, and 3rd order derivatives
-- Multiple network architectures (MLP, Fourier Features, DeepONet)
+PyTorch implementation with automatic differentiation:
+- Neural network learns field u(x,t) from data
+- Physics loss enforces PDE structure: ∂u/∂t = f(u, ∂u/∂x, ∂²u/∂x², ...)
+- Network trained on both data fitting and physics constraints
 
 ### Equation Discovery
-Sparse regression identifies governing equations from learned derivatives:
-- Library-based approach testing candidate terms
-- Least-squares optimization for coefficient fitting
-- Support for linear and nonlinear PDEs
-- Extensible to symbolic regression (PySR) in research edition
+Sparse regression identifies coefficients from neural network derivatives:
+1. Compute derivatives using autograd
+2. Build library of candidate terms (u, u_x, u_xx, uu_x, etc.)
+3. Sparse least-squares finds minimal equation
+4. Quality metrics: R², term count, residuals
 
-### Validated Test Cases
-- Heat equation: ∂u/∂t = ν∇²u
-- Burgers equation: ∂u/∂t = ν∇²u - u∂u/∂x
-- KdV equation: ∂u/∂t = -u∂u/∂x - ∂³u/∂x³
-
----
-
-## Applications
-
-**Scientific Computing:**
-- Discover governing equations from fluid dynamics simulations
-- Extract PDEs from climate and weather data
-- Reverse-engineer physical models from experimental measurements
-
-**Research:**
-- Automated equation discovery reducing weeks of analysis to minutes
-- Systematic exploration of parameter spaces
-- Validation of theoretical models against data
-
-**Education:**
-- Teaching PINNs and scientific machine learning
-- Demonstrating equation discovery workflows
-- Hands-on experimentation with real algorithms
+### Validated Examples
+- **Heat equation:** u_t = 0.1·u_xx
+- **Burgers equation:** u_t = 0.1·u_xx - u·u_x  
+- **KdV equation:** u_t = -u·u_x - u_xxx
 
 ---
 
-## Development Roadmap
+## Use Cases
 
-**Completed:**
-- ✅ Core PINN implementation with PyTorch
-- ✅ Sparse regression equation discovery
-- ✅ Demo application deployment
-- ✅ Microservices architecture design
-- ✅ React frontend implementation
-- ✅ Monitoring stack configuration
-
-**In Progress:**
-- 🚧 Microservices integration testing
-- 🚧 Authentication and multi-user support
-- 🚧 Advanced visualization (3D plotting, interactive charts)
-- 🚧 Real-time WebSocket updates
-
-**Planned:**
-- 📋 GPU acceleration support
-- 📋 Active learning for optimal data sampling
-- 📋 Mobile-responsive interface improvements
-- 📋 Extended PDE library and benchmarks
-
----
-
-## Documentation
-
-- **README.md** - Project overview (this file)
-- **VERSIONS.md** - Detailed guide to all versions
-- **VERSION_COMPARISON.md** - Feature comparison table
-- **architecture.md** - System architecture and design decisions
-- **CURRENT_STATUS.md** - Implementation status by component
-- **docs/api.md** - API endpoint documentation
+- **Research:** Discover PDEs from simulation/experimental data
+- **Education:** Demonstrate machine learning for physics
+- **Validation:** Test theoretical models against measurements
+- **Portfolio:** Full-stack ML engineering showcase
 
 ---
 
 ## Performance
 
-**Demo Application:**
-- Training: 30-60 seconds for typical datasets (10,000 points)
+- Training: 15-25 minutes for 1000 epochs (typical)
 - Equation discovery: <5 seconds
-- Total workflow: <90 seconds on CPU
-- Memory: ~500 MB peak usage
+- Dataset size: Tested up to 10,000 spatiotemporal points
+- Hardware: CPU-optimized (Render free tier)
 
-**Scalability:**
-- Tested on datasets up to 10,000 spatiotemporal points
-- Supports 1D+time problems
-- CPU-based computation (GPU support planned)
+---
+
+## Related Projects
+
+**PhysForge Research Edition:** Enhanced version with multiple discovery algorithms (SINDy, PySR), uncertainty quantification, and comprehensive benchmarking. Available at [PhysForge_Research](../PhysForge_Research/)
+
+---
+
+## Technical Stack
+
+- **Backend:** Python 3.9+, PyTorch, FastAPI, NumPy, SciPy
+- **Frontend:** Vanilla JavaScript, HTML5
+- **Deployment:** Docker, Render
+- **Database:** SQLite (ephemeral)
 
 ---
 
 ## Contributing
 
-Contributions welcome. Please open issues for bugs or feature requests. Pull requests should include tests and documentation updates.
+Issues and suggestions welcome. This is a portfolio/research project demonstrating PINN-based equation discovery.
 
 ---
 
 ## License
 
-Proprietary - Personal Project
+MIT License - See LICENSE file
 
 ---
 
@@ -218,16 +110,13 @@ Proprietary - Personal Project
 
 **Adam Frank Bentley**
 - Email: adam.f.bentley@gmail.com
-- GitHub: github.com/adamfbentley
-- Demo: https://physforge.onrender.com
+- GitHub: [@adamfbentley](https://github.com/adamfbentley)
+- Live Demo: https://physforge.onrender.com
 
 ---
 
 ## Acknowledgments
 
-Built using:
-- PyTorch for automatic differentiation and neural networks
-- FastAPI for REST API services
-- React 18 for modern web interface
-- Docker for containerization
-- Research inspired by Raissi et al. (2019) on Physics-Informed Neural Networks
+- Raissi et al. (2019) - Physics-Informed Neural Networks
+- PyTorch team for automatic differentiation
+- SciPy community for numerical optimization

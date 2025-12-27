@@ -1,9 +1,0 @@
-torch
-numpy
-h5py
-sqlalchemy
-pydantic
-pydantic-settings
-minio
-httpx
-sympy # Added for FeatureGenerator if it uses sympy for parsing/validation

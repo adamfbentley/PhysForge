@@ -1,3 +1,9 @@
+# Archived/experimental directories
+backend/
+frontend/
+app_research/
+.dist/
+
 # Python
 __pycache__/
 *.py[cod]
