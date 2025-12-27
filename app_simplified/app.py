@@ -193,11 +193,13 @@ def train_pinn_on_data(x_data, t_data, u_data, epochs=1000, job_id=None):
     
     return model, losses
 
-def discover_equation(model, x_data, t_data, sample_size=600, threshold=0.05, job_id=None):
+def discover_equation(model, x_data, t_data, threshold=0.05, job_id=None):
     """Discover PDE equation from trained PINN using sparse regression
     
     Builds a library of candidate terms and uses least squares with
     thresholding (simplified SINDy approach) to find active terms.
+    
+    Uses ALL available data for maximum accuracy.
     
     Returns:
         equation_str: Human-readable equation (e.g., "u_t = 0.010*u_xx + 0.002*u*u_x")
@@ -205,31 +207,17 @@ def discover_equation(model, x_data, t_data, sample_size=600, threshold=0.05, jo
         r_squared: Goodness of fit
         terms_tested: All terms that were considered
     """
-    # Determine actual sample size (limited by available data)
-    actual_sample_size = min(sample_size, len(x_data))
-    
-    # Warn if dataset is very small
-    if actual_sample_size < 100:
-        print(f"⚠️ Warning: Only {actual_sample_size} points available - equation discovery may be unreliable", flush=True)
-    
-    print(f"Starting equation discovery with {actual_sample_size} sample points (requested: {sample_size}, available: {len(x_data)})", flush=True)
+    print(f"Starting equation discovery using all {len(x_data)} data points", flush=True)
     if job_id:
-        message = f"🔬 Computing derivatives on {actual_sample_size} sample points..."
-        if actual_sample_size < 100:
-            message = f"⚠️ Small dataset ({actual_sample_size} points) - results may be unreliable"
         processing_status[job_id] = {
             "stage": "discovery",
             "progress": "0%",
-            "message": message
+            "message": f"🔬 Computing derivatives on {len(x_data)} data points..."
         }
     
-    # Sample random points for discovery
-    indices = np.random.choice(len(x_data), size=actual_sample_size, replace=False)
-    x_sample = x_data[indices]
-    t_sample = t_data[indices]
-    
-    x_tensor = torch.tensor(x_sample, dtype=torch.float32).reshape(-1, 1)
-    t_tensor = torch.tensor(t_sample, dtype=torch.float32).reshape(-1, 1)
+    # Use all data (no sampling)
+    x_tensor = torch.tensor(x_data, dtype=torch.float32).reshape(-1, 1)
+    t_tensor = torch.tensor(t_data, dtype=torch.float32).reshape(-1, 1)
     
     # Compute all derivatives
     derivs = compute_derivatives(model, x_tensor, t_tensor)
@@ -451,8 +439,8 @@ def process_job(job_id: str, filepath: str):
         # Train PINN
         model, losses = train_pinn_on_data(x_data, t_data, u_data, epochs=1000, job_id=job_id)
         
-        # Discover equation
-        equation_str, coefficients, r_squared, all_terms = discover_equation(model, x_data, t_data, sample_size=600, threshold=0.05, job_id=job_id)
+        # Discover equation (using all available data)
+        equation_str, coefficients, r_squared, all_terms = discover_equation(model, x_data, t_data, job_id=job_id)
         
         # Create visualization
         viz_path = create_visualization(model, x_data, t_data, u_data, losses, 
