@@ -286,10 +286,18 @@ def discover_equation(model, x_data, t_data, sample_size=600, threshold=0.05, jo
     print(f"  Sparse regression complete. Found {np.sum(coeffs != 0)} active terms.", flush=True)
     if job_id:
         active_count = np.sum(coeffs != 0)
+        # Assess quality for user message
+        if active_count == 0:
+            message = "⚠️ No significant terms found - data may be too noisy"
+        elif active_count > 8:
+            message = f"⚠️ Found {active_count} terms - equation may be overfitting"
+        else:
+            message = f"🎯 Equation discovered! Found {active_count} active term{'s' if active_count != 1 else ''}"
+        
         processing_status[job_id] = {
             "stage": "discovery",
             "progress": "100%",
-            "message": f"🎯 Equation discovered! Found {active_count} active term{'s' if active_count != 1 else ''}"
+            "message": message
         }
     
     # Build equation string
@@ -431,10 +439,10 @@ def process_job(job_id: str, filepath: str):
         u_data = df['u'].values
         
         # Train PINN
-        model, losses = train_pinn_on_data(x_data, t_data, u_data, epochs=500, job_id=job_id)
+        model, losses = train_pinn_on_data(x_data, t_data, u_data, epochs=1000, job_id=job_id)
         
         # Discover equation
-        equation_str, coefficients, r_squared, all_terms = discover_equation(model, x_data, t_data, job_id=job_id)
+        equation_str, coefficients, r_squared, all_terms = discover_equation(model, x_data, t_data, sample_size=600, threshold=0.05, job_id=job_id)
         
         # Create visualization
         viz_path = create_visualization(model, x_data, t_data, u_data, losses, 
@@ -447,7 +455,12 @@ def process_job(job_id: str, filepath: str):
             u_pred = model(x_tensor, t_tensor).numpy().flatten()
         mse = np.mean((u_data - u_pred)**2)
         
-        # Store results
+        # Store results with quality assessment
+        num_terms = len(coefficients)
+        quality = "excellent" if (r_squared > 0.95 and num_terms <= 3) else \
+                  "good" if (r_squared > 0.85 and num_terms <= 5) else \
+                  "fair" if (r_squared > 0.70) else "poor"
+        
         result = {
             "equation": equation_str,
             "coefficients": coefficients,
@@ -456,7 +469,9 @@ def process_job(job_id: str, filepath: str):
             "final_loss": float(losses[-1]),
             "epochs": len(losses),
             "terms_tested": all_terms,
-            "visualization": viz_path
+            "visualization": viz_path,
+            "quality": quality,
+            "num_terms": num_terms
         }
         
         result_json = json.dumps(result)

@@ -472,7 +472,38 @@
                     }
                     
                     resultPanel.classList.add('active');
+                    
+                    // Get quality assessment
+                    const quality = job.result.quality || 'unknown';
+                    const qualityColors = {
+                        'excellent': '#10b981',
+                        'good': '#3b82f6',
+                        'fair': '#f59e0b',
+                        'poor': '#ef4444',
+                        'unknown': '#6b7280'
+                    };
+                    const qualityEmojis = {
+                        'excellent': '🌟',
+                        'good': '✅',
+                        'fair': '⚠️',
+                        'poor': '❌',
+                        'unknown': '❓'
+                    };
+                    
                     resultContent.innerHTML = `
+                        <div style="background: ${qualityColors[quality]}20; border: 2px solid ${qualityColors[quality]}; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+                            <div style="font-size: 1.1em; font-weight: bold; color: ${qualityColors[quality]};">
+                                ${qualityEmojis[quality]} Discovery Quality: ${quality.toUpperCase()}
+                            </div>
+                            <div style="margin-top: 8px; font-size: 0.9em; color: #666;">
+                                ${quality === 'excellent' ? 'High confidence - equation likely accurate' :
+                                  quality === 'good' ? 'Good fit - equation should be reliable' :
+                                  quality === 'fair' ? 'Moderate fit - verify with domain knowledge' :
+                                  quality === 'poor' ? 'Low confidence - results may not be reliable' :
+                                  'Quality assessment unavailable'}
+                            </div>
+                        </div>
+                        
                         <div class="equation-display">
                             ${job.result.equation || 'No equation discovered'}
                         </div>
@@ -480,7 +511,9 @@
                         <div class="metrics">
                             <div class="metric">
                                 <div class="metric-label">R² Score</div>
-                                <div class="metric-value">${(job.result.r_squared || 0).toFixed(6)}</div>
+                                <div class="metric-value" style="color: ${job.result.r_squared > 0.95 ? '#10b981' : job.result.r_squared > 0.85 ? '#3b82f6' : job.result.r_squared > 0.70 ? '#f59e0b' : '#ef4444'}">
+                                    ${(job.result.r_squared || 0).toFixed(6)}
+                                </div>
                             </div>
                             <div class="metric">
                                 <div class="metric-label">MSE</div>
@@ -488,7 +521,9 @@
                             </div>
                             <div class="metric">
                                 <div class="metric-label">Active Terms</div>
-                                <div class="metric-value">${Object.keys(job.result.coefficients || {}).length}</div>
+                                <div class="metric-value" style="color: ${(job.result.num_terms || 0) <= 3 ? '#10b981' : (job.result.num_terms || 0) <= 5 ? '#3b82f6' : '#f59e0b'}">
+                                    ${Object.keys(job.result.coefficients || {}).length}
+                                </div>
                             </div>
                             <div class="metric">
                                 <div class="metric-label">Epochs</div>
