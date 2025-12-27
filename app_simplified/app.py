@@ -123,14 +123,14 @@ def compute_derivatives(model, x, t):
         'u_xxx': u_xxx
     }
 
-def train_pinn_on_data(x_data, t_data, u_data, epochs=500, job_id=None):
+def train_pinn_on_data(x_data, t_data, u_data, epochs=1000, job_id=None):
     """Train PINN on provided data with equation-agnostic physics loss
     
     Uses weak-form physics loss that doesn't assume specific equation.
     The physics is discovered after training via sparse regression.
     """
-    model = PINN(layers=[2, 20, 20, 1])  # Smaller network for memory efficiency
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    model = PINN(layers=[2, 32, 32, 32, 1])  # Larger network for better convergence
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.0005)
     
     x_tensor = torch.tensor(x_data, dtype=torch.float32).reshape(-1, 1)
     t_tensor = torch.tensor(t_data, dtype=torch.float32).reshape(-1, 1)
@@ -170,12 +170,12 @@ def train_pinn_on_data(x_data, t_data, u_data, epochs=500, job_id=None):
         losses.append(loss.item())
         
         # Progress logging and memory cleanup
-        if epoch % 100 == 0:
+        if epoch % 200 == 0:
             print(f"  Epoch {epoch}/{epochs}, Loss: {loss.item():.6f}", flush=True)
             torch.cuda.empty_cache() if torch.cuda.is_available() else None
         
-        # Update progress more frequently for UI (every 10 epochs or first epoch)
-        if job_id and (epoch % 10 == 0 or epoch == 1):
+        # Update progress more frequently for UI (every 20 epochs or first epoch)
+        if job_id and (epoch % 20 == 0 or epoch == 1):
             percent = (epoch / epochs) * 100
             processing_status[job_id] = {
                 "stage": "training",
@@ -193,7 +193,7 @@ def train_pinn_on_data(x_data, t_data, u_data, epochs=500, job_id=None):
     
     return model, losses
 
-def discover_equation(model, x_data, t_data, sample_size=300, threshold=0.01, job_id=None):
+def discover_equation(model, x_data, t_data, sample_size=600, threshold=0.05, job_id=None):
     """Discover PDE equation from trained PINN using sparse regression
     
     Builds a library of candidate terms and uses least squares with
