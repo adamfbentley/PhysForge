@@ -153,14 +153,21 @@ def train_pinn_on_data(x_data, t_data, u_data, epochs=1000, job_id=None):
         u_pred = model(x_tensor, t_tensor)
         data_loss = torch.mean((u_pred - u_tensor)**2)
         
-        # Smoothness regularization (weak physics prior)
+        # Smoothness regularization (lightweight - only compute what we need)
         # Encourages smooth solutions without assuming specific equation
-        derivs = compute_derivatives(model, x_tensor, t_tensor)
+        x_tensor.requires_grad_(True)
+        t_tensor.requires_grad_(True)
+        u = model(x_tensor, t_tensor)
+        
+        # Only compute the derivatives we actually use (u_t and u_xx)
+        u_t = torch.autograd.grad(u, t_tensor, torch.ones_like(u), create_graph=True, retain_graph=True)[0]
+        u_x = torch.autograd.grad(u, x_tensor, torch.ones_like(u), create_graph=True, retain_graph=True)[0]
+        u_xx = torch.autograd.grad(u_x, x_tensor, torch.ones_like(u_x), create_graph=True, retain_graph=True)[0]
         
         # Penalize extreme derivatives (helps numerical stability)
         smoothness_loss = (
-            0.001 * torch.mean(derivs['u_xx']**2) +  # Spatial smoothness
-            0.001 * torch.mean(derivs['u_t']**2)     # Temporal smoothness
+            0.001 * torch.mean(u_xx**2) +  # Spatial smoothness
+            0.001 * torch.mean(u_t**2)     # Temporal smoothness
         )
         
         loss = data_loss + smoothness_loss
