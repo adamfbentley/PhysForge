@@ -205,16 +205,26 @@ def discover_equation(model, x_data, t_data, sample_size=600, threshold=0.05, jo
         r_squared: Goodness of fit
         terms_tested: All terms that were considered
     """
-    print(f"Starting equation discovery with {sample_size} sample points", flush=True)
+    # Determine actual sample size (limited by available data)
+    actual_sample_size = min(sample_size, len(x_data))
+    
+    # Warn if dataset is very small
+    if actual_sample_size < 100:
+        print(f"⚠️ Warning: Only {actual_sample_size} points available - equation discovery may be unreliable", flush=True)
+    
+    print(f"Starting equation discovery with {actual_sample_size} sample points (requested: {sample_size}, available: {len(x_data)})", flush=True)
     if job_id:
+        message = f"🔬 Computing derivatives on {actual_sample_size} sample points..."
+        if actual_sample_size < 100:
+            message = f"⚠️ Small dataset ({actual_sample_size} points) - results may be unreliable"
         processing_status[job_id] = {
             "stage": "discovery",
             "progress": "0%",
-            "message": f"🔬 Computing derivatives on {sample_size} sample points..."
+            "message": message
         }
     
     # Sample random points for discovery
-    indices = np.random.choice(len(x_data), size=min(sample_size, len(x_data)), replace=False)
+    indices = np.random.choice(len(x_data), size=actual_sample_size, replace=False)
     x_sample = x_data[indices]
     t_sample = t_data[indices]
     
