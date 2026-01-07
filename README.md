@@ -2,16 +2,18 @@
 
 [![Demo: Live](https://img.shields.io/badge/demo-live-brightgreen.svg)](https://physforge.onrender.com)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-ee4c2c.svg)](https://pytorch.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688.svg)](https://fastapi.tiangolo.com/)
 
-Discover governing equations from spatiotemporal data using Physics-Informed Neural Networks (PINNs) and sparse regression.
+**Full-stack web application** for discovering governing equations from spatiotemporal data using Physics-Informed Neural Networks (PINNs) and sparse regression.
 
-**🔗 Live Demo:** https://physforge.onrender.com
+**🔗 Live Demo:** https://physforge.onrender.com *(free tier - allow 30s cold start)*
 
 ---
 
 ## Overview
 
-PhysForge automatically discovers partial differential equations from CSV data using physics-informed machine learning. Upload spatiotemporal measurements, train a neural network constrained by physics, and extract the governing equation.
+PhysForge is a complete ML engineering project: PyTorch neural networks with automatic differentiation, FastAPI async backend, background job processing, and deployed web interface. Upload data, the PINN trains while respecting physics constraints, and sparse regression extracts the governing PDE.
 
 **How it works:**
 1. Upload CSV with columns: x (space), t (time), u (field value)
@@ -41,18 +43,28 @@ Visit http://localhost:5000
 
 ## Technical Details
 
-### Physics-Informed Neural Networks
-PyTorch implementation with automatic differentiation:
-- Neural network learns field u(x,t) from data
-- Physics loss enforces PDE structure: ∂u/∂t = f(u, ∂u/∂x, ∂²u/∂x², ...)
-- Network trained on both data fitting and physics constraints
+### Physics-Informed Neural Networks (PINNs)
+PyTorch implementation using automatic differentiation to enforce physics:
+```python
+# Compute derivatives via autograd
+u_t = torch.autograd.grad(u, t, grad_outputs=torch.ones_like(u), create_graph=True)[0]
+u_x = torch.autograd.grad(u, x, grad_outputs=torch.ones_like(u), create_graph=True)[0]
+u_xx = torch.autograd.grad(u_x, x, grad_outputs=torch.ones_like(u_x), create_graph=True)[0]
+
+# Physics loss: PDE residual should be zero
+physics_loss = torch.mean((u_t - discovered_coefficients @ term_library)**2)
+```
+
+- 3-layer MLP learns field u(x,t) from spatiotemporal data
+- Physics loss enforces PDE structure during training
+- Data loss ensures fidelity to observations
 
 ### Equation Discovery
-Sparse regression identifies coefficients from neural network derivatives:
-1. Compute derivatives using autograd
-2. Build library of candidate terms (u, u_x, u_xx, uu_x, etc.)
-3. Sparse least-squares finds minimal equation
-4. Quality metrics: R², term count, residuals
+Sparse regression identifies minimal equation from computed derivatives:
+1. Extract derivatives from trained PINN (u, u_x, u_xx, u_xxx, ...)
+2. Build candidate term library (u, u·u_x, u_xx, etc.)
+3. Thresholded least-squares finds sparse coefficients
+4. Quality metrics: R², sparsity, residual norm
 
 ### Validated Examples
 - **Heat equation:** u_t = 0.1·u_xx
@@ -64,9 +76,18 @@ Sparse regression identifies coefficients from neural network derivatives:
 ## Use Cases
 
 - **Research:** Discover PDEs from simulation/experimental data
-- **Education:** Demonstrate machine learning for physics
+- **Education:** Interactive demonstration of physics-informed ML
 - **Validation:** Test theoretical models against measurements
-- **Portfolio:** Full-stack ML engineering showcase
+
+---
+
+## What This Project Demonstrates
+
+✅ **ML Engineering:** PyTorch model training with custom loss functions  
+✅ **Full-Stack Development:** FastAPI backend with async job processing  
+✅ **Scientific Computing:** Numerical methods, sparse regression, autograd  
+✅ **DevOps:** Docker containerization, cloud deployment  
+✅ **Clean Code:** ~600 lines doing real ML, not scaffolding
 
 ---
 
@@ -87,10 +108,16 @@ Sparse regression identifies coefficients from neural network derivatives:
 
 ## Technical Stack
 
-- **Backend:** Python 3.9+, PyTorch, FastAPI, NumPy, SciPy
-- **Frontend:** Vanilla JavaScript, HTML5
-- **Deployment:** Docker, Render
-- **Database:** SQLite (ephemeral)
+| Layer | Technology |
+|-------|------------|
+| **ML Framework** | PyTorch 2.0+ (autograd, neural networks) |
+| **Backend** | FastAPI (async, background tasks, job queue) |
+| **Scientific** | NumPy, SciPy (sparse regression, optimization) |
+| **Frontend** | Vanilla JS, HTML5, CSS (no framework bloat) |
+| **Database** | SQLite (job tracking) |
+| **Deployment** | Docker, Render (free tier) |
+
+**Architecture:** Single-app deployment optimized for portfolio demonstration. ~600 lines of Python handling ML training, API endpoints, job management, and equation discovery.
 
 ---
 
