@@ -7,7 +7,9 @@
 
 **Full-stack web application** for discovering governing equations from spatiotemporal data using Physics-Informed Neural Networks (PINNs) and sparse regression.
 
-**🔗 Live Demo:** https://physforge.onrender.com *(free tier - allow 30s cold start)*
+**🔗 Live Demo:** [https://physforge.onrender.com](https://physforge.onrender.com) *(free tier - allow 30s cold start)*
+
+![PhysForge demo results](demo_pinn_results.png)
 
 ---
 
@@ -26,7 +28,7 @@ PhysForge is a complete ML engineering project: PyTorch neural networks with aut
 ## Quick Start
 
 ### Try the Live Demo
-Visit https://physforge.onrender.com and upload one of the sample datasets:
+Visit [https://physforge.onrender.com](https://physforge.onrender.com) and upload one of the sample datasets:
 - `sample_heat_equation.csv` - Diffusion process
 - `sample_burgers_equation.csv` - Nonlinear wave propagation
 - `sample_kdv_equation.csv` - Soliton dynamics
@@ -37,7 +39,7 @@ cd app_simplified
 pip install -r requirements.txt
 python app.py
 ```
-Visit http://localhost:5000
+Visit [http://localhost:5000](http://localhost:5000)
 
 ---
 
@@ -136,9 +138,9 @@ MIT License - See LICENSE file
 ## Contact
 
 **Adam Frank Bentley**
-- Email: adam.f.bentley@gmail.com
+- Email: [adam.f.bentley@gmail.com](mailto:adam.f.bentley@gmail.com)
 - GitHub: [@adamfbentley](https://github.com/adamfbentley)
-- Live Demo: https://physforge.onrender.com
+- Live Demo: [https://physforge.onrender.com](https://physforge.onrender.com)
 
 ---
 
