@@ -1,678 +1,748 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PhysForge - AI Physics Discovery</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        
-        header {
-            text-align: center;
-            color: white;
-            margin-bottom: 40px;
-        }
-        
-        h1 {
-            font-size: 3em;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
-        
-        .tagline {
-            font-size: 1.2em;
-            opacity: 0.9;
-        }
-        
-        .card {
-            background: white;
-            border-radius: 12px;
-            padding: 30px;
-            margin-bottom: 30px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-        
-        .upload-zone {
-            border: 3px dashed #667eea;
-            border-radius: 8px;
-            padding: 40px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .upload-zone:hover {
-            border-color: #764ba2;
-            background: #f8f9ff;
-        }
-        
-        .upload-zone.dragover {
-            border-color: #764ba2;
-            background: #f0f4ff;
-        }
-        
-        input[type="file"] {
-            display: none;
-        }
-        
-        .btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 12px 30px;
-            border-radius: 6px;
-            font-size: 1em;
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-        
-        .btn:hover {
-            transform: translateY(-2px);
-        }
-        
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        
-        .job-list {
-            display: grid;
-            gap: 15px;
-        }
-        
-        .job-item {
-            background: #f8f9ff;
-            padding: 20px;
-            border-radius: 8px;
-            border-left: 4px solid #667eea;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .job-item:hover {
-            transform: translateX(5px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        
-        .job-item.completed {
-            border-left-color: #10b981;
-        }
-        
-        .job-item.failed {
-            border-left-color: #ef4444;
-        }
-        
-        .job-item.processing {
-            border-left-color: #f59e0b;
-        }
-        
-        .status-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.85em;
-            font-weight: bold;
-        }
-        
-        .status-queued {
-            background: #dbeafe;
-            color: #1e40af;
-        }
-        
-        .status-processing {
-            background: #fef3c7;
-            color: #92400e;
-        }
-        
-        .status-completed {
-            background: #d1fae5;
-            color: #065f46;
-        }
-        
-        .status-failed {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-        
-        .result-panel {
-            display: none;
-            margin-top: 30px;
-        }
-        
-        .result-panel.active {
-            display: block;
-        }
-        
-        .equation-display {
-            background: #1e293b;
-            color: #10b981;
-            padding: 30px;
-            border-radius: 8px;
-            font-family: 'Courier New', monospace;
-            font-size: 1.5em;
-            text-align: center;
-            margin: 20px 0;
-        }
-        
-        .metrics {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin: 20px 0;
-        }
-        
-        .metric {
-            background: #f8f9ff;
-            padding: 15px;
-            border-radius: 6px;
-            text-align: center;
-        }
-        
-        .metric-label {
-            font-size: 0.9em;
-            color: #666;
-            margin-bottom: 5px;
-        }
-        
-        .metric-value {
-            font-size: 1.5em;
-            font-weight: bold;
-            color: #667eea;
-        }
-        
-        .visualization {
-            width: 100%;
-            border-radius: 8px;
-            margin-top: 20px;
-        }
-        
-        .loading {
-            text-align: center;
-            padding: 20px;
-        }
-        
-        .spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .info-box {
-            background: #e0f2fe;
-            border-left: 4px solid #0284c7;
-            padding: 15px;
-            border-radius: 6px;
-            margin: 20px 0;
-        }
-        
-        .error-box {
-            background: #fee2e2;
-            border-left: 4px solid #ef4444;
-            padding: 15px;
-            border-radius: 6px;
-            margin: 20px 0;
-        }
-        
-        .logs-panel {
-            background: #1e1e1e;
-            color: #d4d4d4;
-            border-radius: 8px;
-            padding: 20px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.9em;
-            max-height: 400px;
-            overflow-y: auto;
-            margin-top: 20px;
-            display: none;
-        }
-        
-        .logs-panel.active {
-            display: block;
-        }
-        
-        .log-entry {
-            padding: 4px 0;
-            border-bottom: 1px solid #333;
-        }
-        
-        .log-timestamp {
-            color: #858585;
-            margin-right: 8px;
-        }
-        
-        .log-level-info {
-            color: #4ec9b0;
-        }
-        
-        .log-level-warning {
-            color: #dcdcaa;
-        }
-        
-        .log-level-error {
-            color: #f48771;
-        }
-        
-        .log-level-success {
-            color: #89d185;
-        }
-        
-        .progress-bar-container {
-            background: #2d2d2d;
-            border-radius: 4px;
-            height: 6px;
-            margin: 10px 0;
-            overflow: hidden;
-        }
-        
-        .progress-bar {
-            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-            height: 100%;
-            transition: width 0.3s ease;
-        }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PhysForge</title>
+  <style>
+    :root{
+      --bg:#0b1220;
+      --panel:#0f172a;
+      --panel2:#0b1220;
+      --border:#1f2a44;
+      --text:#e5e7eb;
+      --muted:#9ca3af;
+      --accent:#60a5fa;
+      --good:#34d399;
+      --warn:#fbbf24;
+      --bad:#fb7185;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji";
+      --radius:14px;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family:var(--sans);
+      background: radial-gradient(1200px 600px at 20% 0%, rgba(96,165,250,.18), transparent 60%),
+                  radial-gradient(900px 500px at 80% 20%, rgba(52,211,153,.12), transparent 55%),
+                  var(--bg);
+      color:var(--text);
+      min-height:100vh;
+    }
+    header{
+      height:56px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:0 18px;
+      border-bottom:1px solid var(--border);
+      background: rgba(15,23,42,.7);
+      backdrop-filter: blur(10px);
+      position:sticky;
+      top:0;
+      z-index:10;
+    }
+    .brand{
+      display:flex; gap:10px; align-items:center;
+      font-weight:650;
+      letter-spacing:.2px;
+    }
+    .brand .dot{
+      width:10px; height:10px; border-radius:999px;
+      background: linear-gradient(135deg, var(--accent), var(--good));
+      box-shadow: 0 0 0 4px rgba(96,165,250,.12);
+    }
+    .header-right{ display:flex; gap:10px; align-items:center; color:var(--muted); font-size:13px; }
+    .layout{
+      display:grid;
+      grid-template-columns: 360px 1fr;
+      gap:14px;
+      padding:14px;
+    }
+    .panel{
+      background: rgba(15,23,42,.86);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      padding:14px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.25);
+    }
+    .panel h2{
+      margin:0 0 10px 0;
+      font-size:14px;
+      color:#cbd5e1;
+      letter-spacing:.4px;
+      text-transform:uppercase;
+      font-weight:700;
+    }
+    .subtle{ color:var(--muted); font-size:13px; line-height:1.35; }
+    .upload{
+      border:1px dashed rgba(96,165,250,.6);
+      border-radius:12px;
+      padding:14px;
+      background: rgba(2,6,23,.35);
+      cursor:pointer;
+      transition: border-color .15s ease, background .15s ease;
+    }
+    .upload:hover{ border-color: rgba(96,165,250,1); background: rgba(2,6,23,.55); }
+    .upload.dragover{ border-color: rgba(52,211,153,1); background: rgba(2,6,23,.65); }
+    .row{ display:flex; gap:10px; align-items:center; justify-content:space-between; }
+    .btn{
+      appearance:none; border:1px solid var(--border);
+      background: rgba(2,6,23,.4);
+      color: var(--text);
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      font-weight:650;
+      font-size:13px;
+      transition: transform .06s ease, border-color .15s ease, background .15s ease;
+    }
+    .btn:hover{ border-color: rgba(96,165,250,.65); background: rgba(2,6,23,.55); }
+    .btn:active{ transform: translateY(1px); }
+    .btn.primary{
+      border-color: rgba(96,165,250,.7);
+      background: linear-gradient(135deg, rgba(96,165,250,.25), rgba(52,211,153,.12));
+    }
+    .btn:disabled{ opacity:.5; cursor:not-allowed; }
+    input[type=file]{ display:none; }
+
+    .list{ display:flex; flex-direction:column; gap:10px; }
+    .job{
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:12px;
+      background: rgba(2,6,23,.35);
+      cursor:pointer;
+      transition: border-color .15s ease, transform .08s ease, background .15s ease;
+    }
+    .job:hover{ border-color: rgba(96,165,250,.6); background: rgba(2,6,23,.5); }
+    .job:active{ transform: translateY(1px); }
+    .badge{
+      font-size:12px; font-weight:700;
+      padding:4px 8px; border-radius:999px;
+      border:1px solid var(--border);
+      color:#cbd5e1;
+      background: rgba(15,23,42,.8);
+      text-transform:uppercase;
+      letter-spacing:.3px;
+    }
+    .badge.completed{ border-color: rgba(52,211,153,.5); color: var(--good); }
+    .badge.failed{ border-color: rgba(251,113,133,.55); color: var(--bad); }
+    .badge.processing{ border-color: rgba(251,191,36,.55); color: var(--warn); }
+    .badge.queued{ border-color: rgba(96,165,250,.55); color: var(--accent); }
+
+    .main{
+      display:grid;
+      grid-template-rows: auto auto 1fr;
+      gap:14px;
+    }
+    .card{
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      padding:14px;
+      background: rgba(15,23,42,.86);
+    }
+    .card-title{
+      display:flex; justify-content:space-between; align-items:center;
+      margin-bottom:10px;
+    }
+    .card-title h3{
+      margin:0;
+      font-size:15px;
+      letter-spacing:.2px;
+    }
+    .statusline{ color: var(--muted); font-size:13px; }
+    .equation{
+      font-family: var(--mono);
+      background: rgba(2,6,23,.55);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:14px;
+      font-size:14px;
+      white-space:pre-wrap;
+      overflow:auto;
+      min-height:52px;
+    }
+    .grid2{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:14px;
+    }
+    .metrics{
+      display:grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap:10px;
+    }
+    .metric{
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:10px;
+      background: rgba(2,6,23,.35);
+    }
+    .metric .k{ color:var(--muted); font-size:12px; }
+    .metric .v{ font-weight:800; font-size:16px; margin-top:4px; }
+    .table{
+      width:100%;
+      border-collapse: collapse;
+      font-family: var(--mono);
+      font-size:12.5px;
+      overflow:hidden;
+      border-radius:12px;
+      border:1px solid var(--border);
+    }
+    .table th, .table td{
+      padding:10px 10px;
+      border-bottom:1px solid rgba(31,42,68,.8);
+      text-align:left;
+      background: rgba(2,6,23,.28);
+    }
+    .table th{
+      color:#cbd5e1;
+      font-weight:800;
+      letter-spacing:.3px;
+      text-transform:uppercase;
+      font-size:11px;
+      background: rgba(2,6,23,.45);
+    }
+    .table tr:hover td{ background: rgba(2,6,23,.45); }
+    .pill{
+      display:inline-flex; align-items:center; gap:6px;
+      padding:6px 10px; border-radius:999px;
+      border:1px solid var(--border);
+      font-size:12px; font-weight:800;
+      letter-spacing:.2px;
+      background: rgba(2,6,23,.35);
+    }
+    .pill.good{ border-color: rgba(52,211,153,.55); color: var(--good); }
+    .pill.warn{ border-color: rgba(251,191,36,.55); color: var(--warn); }
+    .pill.bad{ border-color: rgba(251,113,133,.55); color: var(--bad); }
+    .viz{
+      width:100%;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background: rgba(2,6,23,.2);
+      display:block;
+    }
+    .console{
+      grid-column: 1 / -1;
+      background: rgba(2,6,23,.55);
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      padding:12px;
+    }
+    .console-head{
+      display:flex; justify-content:space-between; align-items:center;
+      margin-bottom:8px;
+    }
+    .console-head h2{ margin:0; font-size:13px; text-transform:uppercase; letter-spacing:.4px; color:#cbd5e1; }
+    .logbox{
+      font-family: var(--mono);
+      font-size:12.5px;
+      line-height:1.4;
+      max-height:220px;
+      overflow:auto;
+      border-radius:12px;
+      border:1px solid rgba(31,42,68,.8);
+      background: rgba(0,0,0,.25);
+      padding:10px;
+    }
+    .logline{ margin:0 0 6px 0; color:#cbd5e1; }
+    .logline .t{ color:#94a3b8; }
+    .logline .lvl-info{ color:#7dd3fc; }
+    .logline .lvl-warn{ color:#fde68a; }
+    .logline .lvl-ok{ color:#86efac; }
+    .logline .lvl-err{ color:#fda4af; }
+    .progresswrap{ margin-top:10px; }
+    .bar{
+      height:8px; border-radius:999px;
+      background: rgba(148,163,184,.15);
+      overflow:hidden;
+      border: 1px solid rgba(31,42,68,.8);
+    }
+    .bar > div{
+      height:100%;
+      width:0%;
+      background: linear-gradient(90deg, rgba(96,165,250,.9), rgba(52,211,153,.85));
+      transition: width .25s ease;
+    }
+    @media (max-width: 980px){
+      .layout{ grid-template-columns: 1fr; }
+      .metrics{ grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .grid2{ grid-template-columns: 1fr; }
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>⚛️ PhysForge</h1>
-            <p class="tagline">AI-Powered Physics Discovery Platform</p>
-        </header>
-        
-        <div class="card">
-            <h2>Upload Dataset</h2>
-            <div class="info-box">
-                <strong>📋 Format:</strong> CSV file with columns: <code>x</code>, <code>t</code>, <code>u</code><br>
-                <strong>📊 Example:</strong> Spatiotemporal data from PDEs (heat equation, wave equation, etc.)
-            </div>
-            
-            <div class="upload-zone" id="uploadZone">
-                <div style="font-size: 3em; margin-bottom: 15px;">📁</div>
-                <h3>Drop CSV file here or click to browse</h3>
-                <p style="margin-top: 10px; color: #666;">PhysForge will train a PINN and discover the governing equation</p>
-                <input type="file" id="fileInput" accept=".csv">
-            </div>
-            
-            <div id="uploadStatus" style="margin-top: 20px;"></div>
-        </div>
-        
-        <div class="card">
-            <h2>Training Jobs</h2>
-            <div id="jobsList" class="job-list">
-                <div class="loading">
-                    <div class="spinner"></div>
-                    <p style="margin-top: 10px;">Loading jobs...</p>
-                </div>
-            </div>
-        </div>
-        
-        <div class="card" id="logsCard" style="display: none;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <h2>Training Logs</h2>
-                <button class="btn" onclick="clearLogs()" style="padding: 8px 16px; font-size: 0.9em;">Clear Logs</button>
-            </div>
-            <div id="progressInfo" style="margin-bottom: 15px;"></div>
-            <div class="logs-panel active" id="logsPanel">
-                <div style="text-align: center; color: #858585;">Waiting for training to start...</div>
-            </div>
-        </div>
-        
-        <div class="card result-panel" id="resultPanel">
-            <h2>Results</h2>
-            <div id="resultContent"></div>
-        </div>
+  <header>
+    <div class="brand"><span class="dot"></span>PhysForge</div>
+    <div class="header-right">
+      <span id="serverStatus">API: unknown</span>
+      <span>•</span>
+      <span id="nowTime"></span>
     </div>
-    
-    <script>
-        const uploadZone = document.getElementById('uploadZone');
-        const fileInput = document.getElementById('fileInput');
-        const uploadStatus = document.getElementById('uploadStatus');
-        const jobsList = document.getElementById('jobsList');
-        const resultPanel = document.getElementById('resultPanel');
-        const resultContent = document.getElementById('resultContent');
-        
-        let currentJobId = null;
-        let refreshInterval = null;
-        let progressInterval = null;
-        const logsCard = document.getElementById('logsCard');
-        const logsPanel = document.getElementById('logsPanel');
-        const progressInfo = document.getElementById('progressInfo');
-        let logEntries = [];
-        
-        // Upload zone interactions
-        uploadZone.addEventListener('click', () => fileInput.click());
-        
-        uploadZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadZone.classList.add('dragover');
-        });
-        
-        uploadZone.addEventListener('dragleave', () => {
-            uploadZone.classList.remove('dragover');
-        });
-        
-        uploadZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadZone.classList.remove('dragover');
-            if (e.dataTransfer.files.length > 0) {
-                handleFileUpload(e.dataTransfer.files[0]);
-            }
-        });
-        
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                handleFileUpload(e.target.files[0]);
-            }
-        });
-        
-        async function handleFileUpload(file) {
-            if (!file.name.endsWith('.csv')) {
-                uploadStatus.innerHTML = '<div class="error-box">❌ Please upload a CSV file</div>';
-                return;
-            }
-            
-            const formData = new FormData();
-            formData.append('file', file);
-            
-            uploadStatus.innerHTML = '<div class="loading"><div class="spinner"></div><p>Uploading...</p></div>';
-            
-            try {
-                const response = await fetch('/api/upload', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                const data = await response.json();
-                
-                if (response.ok) {
-                    uploadStatus.innerHTML = `<div class="info-box">✅ Upload successful! Job ID: ${data.job_id}</div>`;
-                    currentJobId = data.job_id;
-                    loadJobs();
-                    startPolling();
-                    startProgressMonitoring(data.job_id);
-                } else {
-                    uploadStatus.innerHTML = `<div class="error-box">❌ Upload failed: ${data.detail}</div>`;
-                }
-            } catch (error) {
-                uploadStatus.innerHTML = `<div class="error-box">❌ Error: ${error.message}</div>`;
-            }
+  </header>
+
+  <div class="layout">
+    <!-- Sidebar -->
+    <section class="panel">
+      <h2>Dataset</h2>
+      <div class="subtle">Upload a CSV containing columns <span style="font-family:var(--mono);">x, t, u</span>.</div>
+      <div style="height:10px"></div>
+
+      <div class="upload" id="uploadZone" role="button" tabindex="0">
+        <div class="row">
+          <div>
+            <div style="font-weight:800; margin-bottom:4px;">Upload CSV</div>
+            <div class="subtle">Drop file here or click to browse.</div>
+          </div>
+          <button class="btn primary" id="browseBtn" type="button">Browse</button>
+        </div>
+        <input type="file" id="fileInput" accept=".csv" />
+      </div>
+
+      <div id="uploadStatus" style="margin-top:10px;" class="subtle"></div>
+
+      <div style="height:18px"></div>
+      <h2>Jobs</h2>
+      <div id="jobsList" class="list">
+        <div class="subtle">Loading…</div>
+      </div>
+    </section>
+
+    <!-- Main -->
+    <section class="main">
+      <div class="card">
+        <div class="card-title">
+          <h3>Run Summary</h3>
+          <span id="qualityPill" class="pill warn" style="display:none;"></span>
+        </div>
+        <div id="summary" class="statusline">Select a job to view results.</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <h3>Discovered PDE</h3>
+          <div class="row" style="gap:8px;">
+            <button class="btn" id="copyEqBtn" type="button" disabled>Copy</button>
+          </div>
+        </div>
+        <div id="equation" class="equation">(no job selected)</div>
+        <div style="height:10px"></div>
+        <div id="metrics" class="metrics"></div>
+      </div>
+
+      <div class="grid2">
+        <div class="card">
+          <div class="card-title">
+            <h3>Term Coefficients</h3>
+            <div class="statusline">Sorted by |coefficient|</div>
+          </div>
+          <div id="coeffsWrap" class="subtle">No data.</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">
+            <h3>Visualization</h3>
+            <div class="statusline">Model/data diagnostic plot</div>
+          </div>
+          <img id="vizImg" class="viz" alt="Visualization" style="display:none;" />
+          <div id="vizFallback" class="subtle">No visualization available.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Console -->
+    <section class="console">
+      <div class="console-head">
+        <h2>Progress & Logs</h2>
+        <div class="row" style="gap:8px;">
+          <button class="btn" id="clearLogsBtn" type="button">Clear</button>
+        </div>
+      </div>
+
+      <div id="progressText" class="subtle">No active job monitoring.</div>
+      <div class="progresswrap">
+        <div class="bar"><div id="progressBar"></div></div>
+      </div>
+
+      <div style="height:10px"></div>
+      <div id="logbox" class="logbox">
+        <div class="subtle">Logs will appear here when a job runs.</div>
+      </div>
+    </section>
+  </div>
+
+<script>
+  // --- State ---
+  const el = (id) => document.getElementById(id);
+
+  const uploadZone = el('uploadZone');
+  const browseBtn = el('browseBtn');
+  const fileInput = el('fileInput');
+  const uploadStatus = el('uploadStatus');
+  const jobsList = el('jobsList');
+
+  const summary = el('summary');
+  const equation = el('equation');
+  const metrics = el('metrics');
+  const coeffsWrap = el('coeffsWrap');
+  const vizImg = el('vizImg');
+  const vizFallback = el('vizFallback');
+  const qualityPill = el('qualityPill');
+
+  const copyEqBtn = el('copyEqBtn');
+  const clearLogsBtn = el('clearLogsBtn');
+  const logbox = el('logbox');
+  const progressText = el('progressText');
+  const progressBar = el('progressBar');
+
+  let currentJobId = null;
+  let refreshInterval = null;
+  let progressInterval = null;
+  let lastLogMessage = '';
+  let logLines = [];
+
+  // --- Utils ---
+  function nowString(){
+    try { return new Date().toLocaleString(); } catch { return ''; }
+  }
+  function setServerStatus(ok){
+    el('serverStatus').textContent = ok ? 'API: online' : 'API: offline';
+    el('serverStatus').style.color = ok ? 'var(--good)' : 'var(--bad)';
+  }
+
+  function pillForQuality(quality, r2, nTerms){
+    // Trust gate — scientific honesty.
+    // If output looks unstable, do not present as "final".
+    let label = (quality || 'unknown').toUpperCase();
+    let cls = 'warn';
+
+    // Hard overrides based on metrics
+    if (typeof r2 === 'number' && r2 < 0.85) { label = 'UNSTABLE'; cls = 'bad'; }
+    if (typeof nTerms === 'number' && nTerms > 5) { label = 'OVERFIT TERMS'; cls = 'bad'; }
+
+    if (quality === 'excellent') { cls = 'good'; }
+    if (quality === 'good') { cls = 'good'; }
+    if (quality === 'fair') { cls = 'warn'; }
+    if (quality === 'poor') { cls = 'bad'; }
+    if (!quality) { cls = 'warn'; }
+
+    return { label, cls };
+  }
+
+  function metricBox(label, value, color){
+    const d = document.createElement('div');
+    d.className = 'metric';
+    d.innerHTML = `<div class="k">${label}</div><div class="v" style="${color ? `color:${color}`:''}">${value}</div>`;
+    return d;
+  }
+
+  function fmtNum(x, digits=6){
+    if (x === null || x === undefined || Number.isNaN(x)) return '—';
+    return Number(x).toFixed(digits);
+  }
+
+  function fmtSci(x){
+    if (x === null || x === undefined || Number.isNaN(x)) return '—';
+    return Number(x).toExponential(2);
+  }
+
+  function log(level, msg){
+    const t = new Date().toLocaleTimeString();
+    const lvlClass =
+      level === 'ok' ? 'lvl-ok' :
+      level === 'warn' ? 'lvl-warn' :
+      level === 'err' ? 'lvl-err' : 'lvl-info';
+    const line = `<div class="logline"><span class="t">[${t}]</span> <span class="${lvlClass}">${msg}</span></div>`;
+    logLines.push(line);
+    if (logLines.length > 200) logLines.shift();
+    logbox.innerHTML = logLines.join('');
+    logbox.scrollTop = logbox.scrollHeight;
+  }
+
+  function clearLogs(){
+    logLines = [];
+    logbox.innerHTML = `<div class="subtle">Logs cleared.</div>`;
+    lastLogMessage = '';
+  }
+
+  clearLogsBtn.addEventListener('click', clearLogs);
+
+  // --- Upload handling ---
+  browseBtn.addEventListener('click', () => fileInput.click());
+  uploadZone.addEventListener('click', (e) => {
+    if (e.target === browseBtn) return;
+    fileInput.click();
+  });
+  uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+  uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+  uploadZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadZone.classList.remove('dragover');
+    if (e.dataTransfer.files.length) handleFileUpload(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', (e) => {
+    if (e.target.files.length) handleFileUpload(e.target.files[0]);
+  });
+
+  async function handleFileUpload(file){
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+      uploadStatus.innerHTML = `<span style="color:var(--bad); font-weight:800;">Invalid file.</span> Please upload a CSV.`;
+      return;
+    }
+    uploadStatus.textContent = `Uploading ${file.name}…`;
+    log('info', `Upload started: ${file.name}`);
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try{
+      const res = await fetch('/api/upload', { method:'POST', body: formData });
+      const data = await res.json();
+
+      if (!res.ok) {
+        uploadStatus.innerHTML = `<span style="color:var(--bad); font-weight:800;">Upload failed.</span> ${data.detail || 'Unknown error'}`;
+        log('err', `Upload failed: ${data.detail || 'unknown error'}`);
+        return;
+      }
+      uploadStatus.innerHTML = `<span style="color:var(--good); font-weight:800;">Upload complete.</span> Job: <span style="font-family:var(--mono);">${data.job_id}</span>`;
+      currentJobId = data.job_id;
+      await loadJobs();
+      startProgressMonitoring(data.job_id);
+      log('ok', `Job created: ${data.job_id}`);
+    } catch (e){
+      uploadStatus.innerHTML = `<span style="color:var(--bad); font-weight:800;">Network error.</span> ${e.message}`;
+      log('err', `Network error during upload: ${e.message}`);
+    }
+  }
+
+  // --- Jobs ---
+  async function loadJobs(){
+    try{
+      const res = await fetch('/api/jobs');
+      const jobs = await res.json();
+      if (!Array.isArray(jobs) || jobs.length === 0){
+        jobsList.innerHTML = `<div class="subtle">No jobs yet.</div>`;
+        return;
+      }
+      jobsList.innerHTML = jobs.map(j => {
+        const created = j.created_at ? new Date(j.created_at).toLocaleString() : '';
+        return `
+          <div class="job" data-id="${j.id}">
+            <div class="row">
+              <div>
+                <div style="font-weight:800;">${escapeHtml(j.dataset_name || j.id)}</div>
+                <div class="subtle">${created}</div>
+              </div>
+              <span class="badge ${j.status}">${(j.status || 'unknown')}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // bind
+      Array.from(jobsList.querySelectorAll('.job')).forEach(node => {
+        node.addEventListener('click', () => viewJobDetails(node.getAttribute('data-id')));
+      });
+
+    }catch(e){
+      jobsList.innerHTML = `<div class="subtle" style="color:var(--bad);">Failed to load jobs: ${e.message}</div>`;
+    }
+  }
+
+  async function viewJobDetails(jobId){
+    currentJobId = jobId;
+    clearLogs(); // reset console context for selected job
+    log('info', `Selected job: ${jobId}`);
+
+    try{
+      const res = await fetch(`/api/jobs/${jobId}`);
+      const job = await res.json();
+      if (!res.ok){
+        summary.textContent = `Failed to load job.`;
+        equation.textContent = '(error)';
+        return;
+      }
+
+      const created = job.created_at ? new Date(job.created_at).toLocaleString() : '—';
+      summary.textContent = `${job.dataset_name || job.id} • ${job.status?.toUpperCase() || 'UNKNOWN'} • ${created}`;
+
+      // reset panels
+      metrics.innerHTML = '';
+      coeffsWrap.innerHTML = `<div class="subtle">No coefficients.</div>`;
+      vizImg.style.display = 'none';
+      vizFallback.style.display = 'block';
+      qualityPill.style.display = 'none';
+      copyEqBtn.disabled = true;
+
+      if (job.status === 'completed' && job.result){
+        const r2 = job.result.r_squared;
+        const mse = job.result.mse;
+        const coeffs = job.result.coefficients || {};
+        const nTerms = Object.keys(coeffs).length;
+        const quality = job.result.quality || 'unknown';
+
+        // quality pill + trust gate
+        const pill = pillForQuality(quality, r2, nTerms);
+        qualityPill.style.display = 'inline-flex';
+        qualityPill.className = `pill ${pill.cls}`;
+        qualityPill.textContent = pill.label;
+
+        // Equation display — if unstable, show as "candidate"
+        const eq = job.result.equation || '(no equation)';
+        if (pill.cls === 'bad'){
+          equation.textContent = `CANDIDATE (UNSTABLE)\n${eq}\n\nRecommendation: inspect terms & residuals; consider more data / stronger regularization.`;
+        } else {
+          equation.textContent = eq;
         }
-        
-        async function loadJobs() {
-            try {
-                const response = await fetch('/api/jobs');
-                const jobs = await response.json();
-                
-                if (jobs.length === 0) {
-                    jobsList.innerHTML = '<p style="text-align: center; color: #666;">No jobs yet. Upload a dataset to get started!</p>';
-                    return;
-                }
-                
-                jobsList.innerHTML = jobs.map(job => `
-                    <div class="job-item ${job.status}" onclick="viewJobDetails('${job.id}')">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <div>
-                                <strong>${job.dataset_name}</strong>
-                                <div style="margin-top: 5px; font-size: 0.9em; color: #666;">
-                                    ${new Date(job.created_at).toLocaleString()}
-                                </div>
-                            </div>
-                            <span class="status-badge status-${job.status}">${job.status.toUpperCase()}</span>
-                        </div>
-                    </div>
-                `).join('');
-            } catch (error) {
-                jobsList.innerHTML = `<div class="error-box">❌ Failed to load jobs: ${error.message}</div>`;
-            }
+        copyEqBtn.disabled = false;
+        copyEqBtn.onclick = async () => {
+          await navigator.clipboard.writeText(eq);
+          log('ok', 'Equation copied to clipboard.');
+        };
+
+        // metrics
+        metrics.appendChild(metricBox('R²', fmtNum(r2, 6), (r2>0.95?'var(--good)': r2>0.85?'var(--accent)': r2>0.70?'var(--warn)':'var(--bad)')));
+        metrics.appendChild(metricBox('MSE', fmtSci(mse), ''));
+        metrics.appendChild(metricBox('Active terms', String(nTerms), (nTerms<=3?'var(--good)': nTerms<=5?'var(--accent)':'var(--warn)')));
+        metrics.appendChild(metricBox('Epochs', String(job.result.epochs ?? '—'), ''));
+
+        // coefficients table
+        const entries = Object.entries(coeffs).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1]));
+        if (entries.length){
+          const rows = entries.map(([term,val], i) => `
+            <tr>
+              <td>${i+1}</td>
+              <td>${escapeHtml(term)}</td>
+              <td>${val >= 0 ? '+' : ''}${Number(val).toFixed(8)}</td>
+              <td>${Math.abs(Number(val)).toExponential(2)}</td>
+            </tr>
+          `).join('');
+          coeffsWrap.innerHTML = `
+            <table class="table">
+              <thead><tr><th>#</th><th>term</th><th>coeff</th><th>|coeff|</th></tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+          `;
+        } else {
+          coeffsWrap.innerHTML = `<div class="subtle" style="color:var(--warn);">No significant terms discovered.</div>`;
         }
-        
-        async function viewJobDetails(jobId) {
-            try {
-                const response = await fetch(`/api/jobs/${jobId}`);
-                const job = await response.json();
-                
-                console.log('Job details:', job); // Debug logging
-                
-                if (job.status === 'completed') {
-                    if (!job.result) {
-                        resultPanel.classList.add('active');
-                        resultContent.innerHTML = `
-                            <div class="error-box">
-                                ❌ Job completed but no results were saved. This might be a server error.
-                                <br><br>
-                                <strong>Debug info:</strong>
-                                <pre>${JSON.stringify(job, null, 2)}</pre>
-                            </div>
-                        `;
-                        return;
-                    }
-                    
-                    resultPanel.classList.add('active');
-                    
-                    // Get quality assessment
-                    const quality = job.result.quality || 'unknown';
-                    const qualityColors = {
-                        'excellent': '#10b981',
-                        'good': '#3b82f6',
-                        'fair': '#f59e0b',
-                        'poor': '#ef4444',
-                        'unknown': '#6b7280'
-                    };
-                    const qualityEmojis = {
-                        'excellent': '🌟',
-                        'good': '✅',
-                        'fair': '⚠️',
-                        'poor': '❌',
-                        'unknown': '❓'
-                    };
-                    
-                    resultContent.innerHTML = `
-                        <div style="background: ${qualityColors[quality]}20; border: 2px solid ${qualityColors[quality]}; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
-                            <div style="font-size: 1.1em; font-weight: bold; color: ${qualityColors[quality]};">
-                                ${qualityEmojis[quality]} Discovery Quality: ${quality.toUpperCase()}
-                            </div>
-                            <div style="margin-top: 8px; font-size: 0.9em; color: #666;">
-                                ${quality === 'excellent' ? 'High confidence - equation likely accurate' :
-                                  quality === 'good' ? 'Good fit - equation should be reliable' :
-                                  quality === 'fair' ? 'Moderate fit - verify with domain knowledge' :
-                                  quality === 'poor' ? 'Low confidence - results may not be reliable' :
-                                  'Quality assessment unavailable'}
-                            </div>
-                        </div>
-                        
-                        <div class="equation-display">
-                            ${job.result.equation || 'No equation discovered'}
-                        </div>
-                        
-                        <div class="metrics">
-                            <div class="metric">
-                                <div class="metric-label">R² Score</div>
-                                <div class="metric-value" style="color: ${job.result.r_squared > 0.95 ? '#10b981' : job.result.r_squared > 0.85 ? '#3b82f6' : job.result.r_squared > 0.70 ? '#f59e0b' : '#ef4444'}">
-                                    ${(job.result.r_squared || 0).toFixed(6)}
-                                </div>
-                            </div>
-                            <div class="metric">
-                                <div class="metric-label">MSE</div>
-                                <div class="metric-value">${(job.result.mse || 0).toExponential(2)}</div>
-                            </div>
-                            <div class="metric">
-                                <div class="metric-label">Active Terms</div>
-                                <div class="metric-value" style="color: ${(job.result.num_terms || 0) <= 3 ? '#10b981' : (job.result.num_terms || 0) <= 5 ? '#3b82f6' : '#f59e0b'}">
-                                    ${Object.keys(job.result.coefficients || {}).length}
-                                </div>
-                            </div>
-                            <div class="metric">
-                                <div class="metric-label">Epochs</div>
-                                <div class="metric-value">${job.result.epochs || 0}</div>
-                            </div>
-                        </div>
-                        
-                        ${Object.keys(job.result.coefficients || {}).length > 0 ? `
-                        <h3>Discovered Coefficients</h3>
-                        <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; font-family: monospace; max-height: 200px; overflow-y: auto;">
-                            ${Object.entries(job.result.coefficients || {})
-                                .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
-                                .map(([term, coeff]) => `
-                                    <div style="padding: 5px 0; border-bottom: 1px solid #ddd;">
-                                        <span style="color: #667eea; font-weight: bold;">${term}</span> = 
-                                        <span style="color: ${coeff >= 0 ? '#27ae60' : '#e74c3c'};">${coeff >= 0 ? '+' : ''}${coeff.toFixed(6)}</span>
-                                    </div>
-                                `).join('')}
-                        </div>
-                        ` : '<p style="color: #e74c3c;">⚠️ No significant terms discovered (data may be too noisy or sparse)</p>'}
-                        
-                        
-                        <h3>Visualization</h3>
-                        <img src="/api/results/${jobId}/visualization" class="visualization" alt="Results" onerror="this.style.display='none'; this.parentElement.innerHTML='<p>⚠️ Visualization not available</p>';">
-                    `;
-                    resultPanel.scrollIntoView({ behavior: 'smooth' });
-                } else if (job.status === 'failed') {
-                    resultPanel.classList.add('active');
-                    resultContent.innerHTML = `<div class="error-box">❌ Job failed: ${job.error}</div>`;
-                } else {
-                    resultPanel.classList.add('active');
-                    resultContent.innerHTML = `
-                        <div class="info-box">
-                            ⏳ Job is ${job.status}... Results will appear here when complete.
-                        </div>
-                    `;
-                }
-            } catch (error) {
-                alert('Failed to load job details');
-            }
+
+        // visualization
+        vizImg.src = `/api/results/${jobId}/visualization`;
+        vizImg.onload = () => { vizFallback.style.display='none'; vizImg.style.display='block'; };
+        vizImg.onerror = () => { vizImg.style.display='none'; vizFallback.style.display='block'; };
+
+        // start monitoring this job's progress/logs anyway (useful to see last events)
+        startProgressMonitoring(jobId, true);
+
+      } else if (job.status === 'failed'){
+        qualityPill.style.display = 'inline-flex';
+        qualityPill.className = 'pill bad';
+        qualityPill.textContent = 'FAILED';
+        equation.textContent = `Job failed.\n\n${job.error || '(no error info)'}`;
+        log('err', `Job failed: ${job.error || 'unknown error'}`);
+        startProgressMonitoring(jobId, true);
+      } else {
+        qualityPill.style.display = 'inline-flex';
+        qualityPill.className = 'pill warn';
+        qualityPill.textContent = (job.status || 'UNKNOWN').toUpperCase();
+        equation.textContent = `(job ${job.status})`;
+        startProgressMonitoring(jobId);
+      }
+
+    }catch(e){
+      summary.textContent = 'Error loading job.';
+      equation.textContent = '(error)';
+      log('err', `Failed to load job: ${e.message}`);
+    }
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, (c) => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[c]));
+  }
+
+  // --- Progress monitoring ---
+  async function startProgressMonitoring(jobId, silent=false){
+    if (progressInterval) clearInterval(progressInterval);
+
+    progressText.textContent = `Monitoring job ${jobId}…`;
+    progressBar.style.width = '0%';
+
+    progressInterval = setInterval(async () => {
+      try{
+        const res = await fetch(`/api/jobs/${jobId}/progress`);
+        const p = await res.json();
+
+        if (!p || p.stage === 'unknown') return;
+
+        if (p.message && p.message !== lastLogMessage){
+          lastLogMessage = p.message;
+          const level =
+            p.stage === 'discovery' ? 'warn' :
+            p.stage === 'complete' ? 'ok' :
+            p.stage === 'error' ? 'err' : 'info';
+          log(level, p.message);
         }
-        
-        function startPolling() {
-            if (refreshInterval) clearInterval(refreshInterval);
-            refreshInterval = setInterval(loadJobs, 3000);
+
+        // progress text + bar
+        let pct = 0;
+        if (p.stage === 'training'){
+          const m = (p.progress || '').match(/(\d+)\s*\/\s*(\d+)/);
+          if (m){
+            const cur = parseInt(m[1],10), tot = parseInt(m[2],10);
+            pct = tot ? (cur/tot)*100 : 0;
+            progressText.textContent = `Training PINN: ${cur}/${tot} epochs`;
+          } else {
+            progressText.textContent = `Training PINN…`;
+          }
+        } else if (p.stage === 'training_complete'){
+          pct = 100; progressText.textContent = `Training complete.`;
+        } else if (p.stage === 'discovery'){
+          pct = 100; progressText.textContent = `Discovering equation…`;
+        } else if (p.stage === 'complete'){
+          pct = 100; progressText.textContent = `Complete.`;
         }
-        
-        async function startProgressMonitoring(jobId) {
-            logsCard.style.display = 'block';
-            logsPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            
-            if (progressInterval) clearInterval(progressInterval);
-            
-            progressInterval = setInterval(async () => {
-                try {
-                    const response = await fetch(`/api/jobs/${jobId}/progress`);
-                    const progress = await response.json();
-                    
-                    if (progress.stage !== 'unknown') {
-                        updateProgressDisplay(progress);
-                        addLogEntry(progress);
-                    }
-                    
-                    // Stop monitoring if job is complete
-                    const jobResponse = await fetch(`/api/jobs/${jobId}`);
-                    const job = await jobResponse.json();
-                    if (job.status === 'completed' || job.status === 'failed') {
-                        clearInterval(progressInterval);
-                        if (job.status === 'completed') {
-                            addLogEntry({
-                                stage: 'complete',
-                                message: '✅ Training complete! Equation discovered successfully.',
-                                progress: '100%'
-                            });
-                        }
-                    }
-                } catch (error) {
-                    console.error('Failed to fetch progress:', error);
-                }
-            }, 2000); // Poll every 2 seconds
+        progressBar.style.width = `${Math.max(0, Math.min(100, pct))}%`;
+
+        // stop if completed/failed
+        const jobRes = await fetch(`/api/jobs/${jobId}`);
+        const job = await jobRes.json();
+        if (job.status === 'completed' || job.status === 'failed'){
+          clearInterval(progressInterval);
+          progressInterval = null;
+          if (!silent){
+            log(job.status === 'completed' ? 'ok' : 'err', `Job ${job.status}.`);
+            // auto-refresh details
+            await loadJobs();
+            await viewJobDetails(jobId);
+          }
         }
-        
-        function updateProgressDisplay(progress) {
-            let progressPercent = 0;
-            let statusText = '';
-            
-            if (progress.stage === 'training') {
-                const match = progress.progress.match(/(\d+)\/(\d+)/);
-                if (match) {
-                    const current = parseInt(match[1]);
-                    const total = parseInt(match[2]);
-                    progressPercent = (current / total) * 100;
-                    statusText = `Training PINN: ${current}/${total} epochs`;
-                }
-            } else if (progress.stage === 'training_complete') {
-                progressPercent = 100;
-                statusText = 'Training complete';
-            } else if (progress.stage === 'discovery') {
-                progressPercent = 100;
-                statusText = 'Discovering equation...';
-            }
-            
-            progressInfo.innerHTML = `
-                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                    <span style="font-weight: 500;">${statusText}</span>
-                    <span style="color: #667eea;">${progressPercent.toFixed(0)}%</span>
-                </div>
-                <div class="progress-bar-container">
-                    <div class="progress-bar" style="width: ${progressPercent}%"></div>
-                </div>
-            `;
-        }
-        
-        let lastLogMessage = '';
-        function addLogEntry(progress) {
-            // Avoid duplicate consecutive messages
-            if (progress.message === lastLogMessage) return;
-            lastLogMessage = progress.message;
-            
-            const timestamp = new Date().toLocaleTimeString();
-            const levelClass = progress.stage === 'complete' ? 'success' : 
-                              progress.stage === 'discovery' ? 'warning' : 'info';
-            
-            const logHtml = `
-                <div class="log-entry">
-                    <span class="log-timestamp">[${timestamp}]</span>
-                    <span class="log-level-${levelClass}">${progress.message}</span>
-                </div>
-            `;
-            
-            logEntries.push(logHtml);
-            
-            // Keep last 50 entries
-            if (logEntries.length > 50) {
-                logEntries.shift();
-            }
-            
-            logsPanel.innerHTML = logEntries.join('');
-            logsPanel.scrollTop = logsPanel.scrollHeight;
-        }
-        
-        function clearLogs() {
-            logEntries = [];
-            logsPanel.innerHTML = '<div style="text-align: center; color: #858585;">Logs cleared</div>';
-        }
-        
-        // Initial load
-        loadJobs();
-        startPolling();
-    </script>
+
+      }catch(e){
+        // don't spam
+      }
+    }, 2000);
+  }
+
+  // --- init ---
+  el('nowTime').textContent = nowString();
+  setInterval(() => el('nowTime').textContent = nowString(), 1000);
+
+  async function ping(){
+    try{
+      const res = await fetch('/api/jobs');
+      setServerStatus(res.ok);
+    }catch{ setServerStatus(false); }
+  }
+
+  await ping();
+  await loadJobs();
+  refreshInterval = setInterval(loadJobs, 4000);
+</script>
 </body>
 </html>
+
