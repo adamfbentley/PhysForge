@@ -200,19 +200,31 @@ def train_pinn_on_data(x_data, t_data, u_data, epochs=1000, job_id=None):
     
     return model, losses
 
-def discover_equation(model, x_data, t_data, threshold=0.05, job_id=None):
-    """Discover PDE equation from trained PINN using sparse regression
-    
-    Builds a library of candidate terms and uses least squares with
-    thresholding (simplified SINDy approach) to find active terms.
-    
-    Uses ALL available data for maximum accuracy.
-    
+def discover_equation(model, x_data, t_data, threshold: float = 0.05, job_id: Optional[str] = None,
+                      bootstrap_samples: int = 10, sample_ratio: float = 0.7) -> tuple:
+    """
+    Discover PDE equation from a trained PINN using an iterative sparse regression (STLSQ) with bootstrap
+    stability analysis. Compared to the original single-pass thresholded regression, this method
+    iteratively refits the model after removing small coefficients and estimates the stability of
+    discovered terms via random subsampling.
+
+    Args:
+        model: Trained PINN model.
+        x_data, t_data: Arrays of space/time coordinates (1D).
+        threshold: Coefficient threshold relative to the largest coefficient.
+        job_id: Optional job identifier for UI progress updates.
+        bootstrap_samples: Number of bootstrap runs for stability estimation.
+        sample_ratio: Fraction of data points used in each bootstrap resample.
+
     Returns:
-        equation_str: Human-readable equation (e.g., "u_t = 0.010*u_xx + 0.002*u*u_x")
-        coefficients: Dict of non-zero coefficients
-        r_squared: Goodness of fit
-        terms_tested: All terms that were considered
+        equation_str: Human-readable PDE (e.g., "u_t = 0.010*u_xx - 0.100*u*u_x").
+        coefficients: Dictionary of active terms and their coefficients.
+        r_squared: Goodness of fit on full data.
+        term_names: List of all candidate terms considered.
+        stability_freq: Dict mapping term name to selection frequency across bootstraps (0-1).
+        coeff_std: Dict mapping term name to standard deviation of coefficients across bootstraps.
+        derivative_stable: Optional boolean indicating whether autograd derivatives agree with
+                          finite-difference approximations (True => derivatives reliable).
     """
     print(f"Starting equation discovery using all {len(x_data)} data points", flush=True)
     if job_id:
@@ -221,112 +233,187 @@ def discover_equation(model, x_data, t_data, threshold=0.05, job_id=None):
             "progress": "0%",
             "message": f"🔬 Computing derivatives on {len(x_data)} data points..."
         }
-    
-    # Use all data (no sampling)
+
+    # Convert inputs to tensors for autograd
     x_tensor = torch.tensor(x_data, dtype=torch.float32).reshape(-1, 1)
     t_tensor = torch.tensor(t_data, dtype=torch.float32).reshape(-1, 1)
-    
-    # Compute all derivatives
+
+    # Compute derivatives via autograd
     derivs = compute_derivatives(model, x_tensor, t_tensor)
-    
-    # Target: u_t (left-hand side of PDE)
+
+    # Flatten target and u for convenience
     u_t_np = derivs['u_t'].detach().numpy().flatten()
     u_np = derivs['u'].detach().numpy().flatten()
-    
-    # Build library of candidate terms (right-hand side)
+
+    # ------------------------------------------------------------------
+    # Finite difference derivative sanity check on a regular grid
+    derivative_stable = None
+    try:
+        # Check if the dataset forms a complete grid (n_x * n_t)
+        xs = np.unique(x_data)
+        ts = np.unique(t_data)
+        if len(xs) * len(ts) == len(u_np):
+            # Reshape predictions into grid
+            with torch.no_grad():
+                u_pred = model(x_tensor, t_tensor).numpy().flatten()
+            u_pred_grid = u_pred.reshape(len(ts), len(xs))
+            # Finite difference along x and t (interior points)
+            dx = xs[1] - xs[0] if len(xs) > 1 else 1.0
+            dt = ts[1] - ts[0] if len(ts) > 1 else 1.0
+            # Compute FD derivatives on grid (central difference)
+            fd_u_x = (u_pred_grid[:, 2:] - u_pred_grid[:, :-2]) / (2 * dx)
+            fd_u_t = (u_pred_grid[2:, :] - u_pred_grid[:-2, :]) / (2 * dt)
+            # Autograd derivatives on matching interior points
+            u_x_autograd = derivs['u_x'].detach().numpy().flatten().reshape(len(ts), len(xs))
+            u_t_autograd = derivs['u_t'].detach().numpy().flatten().reshape(len(ts), len(xs))
+            u_x_autograd_int = u_x_autograd[:, 1:-1]
+            u_t_autograd_int = u_t_autograd[1:-1, :]
+            # Compute relative errors
+            err_x = np.linalg.norm(fd_u_x - u_x_autograd_int) / (np.linalg.norm(u_x_autograd_int) + 1e-12)
+            err_t = np.linalg.norm(fd_u_t - u_t_autograd_int) / (np.linalg.norm(u_t_autograd_int) + 1e-12)
+            derivative_stable = (max(err_x, err_t) < 0.5)
+        else:
+            derivative_stable = None
+    except Exception:
+        derivative_stable = None
+
+    # ------------------------------------------------------------------
+    # Candidate library (restricted by default to avoid overfitting)
     if job_id:
         processing_status[job_id] = {
             "stage": "discovery",
-            "progress": "50%",
-            "message": "📚 Building library of candidate terms (linear, nonlinear, derivatives)..."
+            "progress": "40%",
+            "message": "📚 Building candidate term library..."
         }
-    
+
     library = {}
-    
-    # Linear terms
+    # Base terms
     library['u'] = u_np
     library['u_x'] = derivs['u_x'].detach().numpy().flatten()
-    
-    # Second derivatives
     library['u_xx'] = derivs['u_xx'].detach().numpy().flatten()
-    library['u_tt'] = derivs['u_tt'].detach().numpy().flatten()
-    library['u_xt'] = derivs['u_xt'].detach().numpy().flatten()
-    
-    # Third derivative
     library['u_xxx'] = derivs['u_xxx'].detach().numpy().flatten()
-    
     # Nonlinear terms
-    library['u²'] = u_np ** 2
-    library['u³'] = u_np ** 3
     library['u*u_x'] = u_np * library['u_x']
-    library['u*u_xx'] = u_np * library['u_xx']
-    library['u_x²'] = library['u_x'] ** 2
-    
-    # Stack into feature matrix
+    # Optional higher-order nonlinearities (commented for now)
+    library['u²'] = u_np ** 2
+    # library['u³'] = u_np ** 3
+
+    # Names and full design matrix
     term_names = list(library.keys())
-    X = np.column_stack([library[name] for name in term_names])
-    
+    X_full = np.column_stack([library[name] for name in term_names])
+
     if job_id:
         processing_status[job_id] = {
             "stage": "discovery",
             "progress": "50%",
             "message": f"📊 Running sparse regression on {len(term_names)} candidate terms..."
         }
-    
-    # Normalize columns for numerical stability
-    X_std = np.std(X, axis=0)
-    X_std[X_std < 1e-10] = 1.0  # Avoid division by zero
-    X_normalized = X / X_std
-    
-    # Least squares fit
-    coeffs_normalized, residuals, rank, s = np.linalg.lstsq(X_normalized, u_t_np, rcond=None)
-    
-    # Un-normalize coefficients
-    coeffs = coeffs_normalized / X_std
-    
-    # Threshold small coefficients (sparsity)
-    max_coeff = np.max(np.abs(coeffs))
-    coeffs[np.abs(coeffs) < threshold * max_coeff] = 0
-    
-    print(f"  Sparse regression complete. Found {np.sum(coeffs != 0)} active terms.", flush=True)
+
+    # ------------------------------------------------------------------
+    # Helper: iterative thresholded least squares (STLSQ)
+    def stlsq(X, y, thr):
+        # Normalize columns
+        X_std = np.std(X, axis=0)
+        X_std[X_std < 1e-10] = 1.0
+        X_norm = X / X_std
+        # Active mask (all terms start active)
+        active = np.ones(X_norm.shape[1], dtype=bool)
+        coeffs = np.zeros(X_norm.shape[1])
+        while True:
+            # Fit only on active columns
+            Xa = X_norm[:, active]
+            # Solve least squares
+            try:
+                coeffs_norm, *_ = np.linalg.lstsq(Xa, y, rcond=None)
+            except np.linalg.LinAlgError:
+                coeffs_norm = np.zeros(Xa.shape[1])
+            # Un-normalize
+            coeffs_full = np.zeros_like(coeffs)
+            coeffs_full[active] = coeffs_norm / X_std[active]
+            # Threshold
+            max_c = np.max(np.abs(coeffs_full)) if coeffs_full.size else 0.0
+            # Avoid division by zero
+            if max_c == 0:
+                break
+            new_active = np.abs(coeffs_full) >= thr * max_c
+            # If no change, stop
+            if np.array_equal(new_active, active):
+                coeffs = coeffs_full
+                break
+            # If all dropped, keep at least the largest term
+            if np.sum(new_active) == 0:
+                idx_max = np.argmax(np.abs(coeffs_full))
+                new_active[idx_max] = True
+            active = new_active
+        return coeffs
+
+    # ------------------------------------------------------------------
+    # Bootstrap stability analysis
+    rng = np.random.default_rng()
+    n = len(u_t_np)
+    selection_counts = {name: 0 for name in term_names}
+    coeff_hist = {name: [] for name in term_names}
+    for b in range(max(1, bootstrap_samples)):
+        # Random subset indices
+        idx = rng.choice(n, size=int(sample_ratio * n), replace=False)
+        X_sub = X_full[idx]
+        y_sub = u_t_np[idx]
+        coeffs_b = stlsq(X_sub, y_sub, threshold)
+        # Record selections and values
+        for name, coeff in zip(term_names, coeffs_b):
+            if coeff != 0:
+                selection_counts[name] += 1
+                coeff_hist[name].append(coeff)
+
+    stability_freq = {name: selection_counts[name] / max(1, bootstrap_samples) for name in term_names}
+    coeff_std = {name: (float(np.std(coeff_hist[name])) if len(coeff_hist[name]) > 1 else 0.0)
+                 for name in term_names}
+
+    # ------------------------------------------------------------------
+    # Final coefficients using all data
+    final_coeffs = stlsq(X_full, u_t_np, threshold)
+    final_active_coeffs = {}
+    active_terms_list = []
+    for name, coeff in zip(term_names, final_coeffs):
+        if coeff != 0:
+            final_active_coeffs[name] = float(coeff)
+            sign = "+" if coeff > 0 else ""
+            active_terms_list.append(f"{sign}{coeff:.6f}*{name}")
+
+    if active_terms_list:
+        equation_str = "u_t = " + " ".join(active_terms_list).replace("+ -", "- ")
+    else:
+        equation_str = "u_t = 0 (no significant terms found)"
+
+    # ------------------------------------------------------------------
+    # Compute R² on full data using only active terms
+    if len(final_active_coeffs) > 0:
+        active_idx = [i for i, name in enumerate(term_names) if name in final_active_coeffs]
+        X_active = X_full[:, active_idx]
+        coeffs_vec = np.array([final_active_coeffs[term_names[i]] for i in active_idx])
+        u_t_pred = X_active @ coeffs_vec
+    else:
+        u_t_pred = np.zeros_like(u_t_np)
+    ss_res = np.sum((u_t_np - u_t_pred)**2)
+    ss_tot = np.sum((u_t_np - np.mean(u_t_np))**2)
+    r_squared = 1 - ss_res / ss_tot if ss_tot > 0 else 0.0
+
     if job_id:
-        active_count = np.sum(coeffs != 0)
-        # Assess quality for user message
+        message = "";
+        active_count = len(final_active_coeffs)
         if active_count == 0:
             message = "⚠️ No significant terms found - data may be too noisy"
         elif active_count > 8:
             message = f"⚠️ Found {active_count} terms - equation may be overfitting"
         else:
             message = f"🎯 Equation discovered! Found {active_count} active term{'s' if active_count != 1 else ''}"
-        
         processing_status[job_id] = {
             "stage": "discovery",
             "progress": "100%",
             "message": message
         }
-    
-    # Build equation string
-    active_terms = []
-    active_coeffs = {}
-    
-    for name, coeff in zip(term_names, coeffs):
-        if coeff != 0:
-            active_coeffs[name] = float(coeff)
-            sign = "+" if coeff > 0 else ""
-            active_terms.append(f"{sign}{coeff:.6f}*{name}")
-    
-    if active_terms:
-        equation_str = "u_t = " + " ".join(active_terms).replace("+ -", "- ")
-    else:
-        equation_str = "u_t = 0 (no significant terms found)"
-    
-    # R² score
-    u_t_pred = X @ coeffs
-    ss_res = np.sum((u_t_np - u_t_pred)**2)
-    ss_tot = np.sum((u_t_np - np.mean(u_t_np))**2)
-    r_squared = 1 - ss_res / ss_tot if ss_tot > 0 else 0.0
-    
-    return equation_str, active_coeffs, r_squared, term_names
+
+    return equation_str, final_active_coeffs, r_squared, term_names, stability_freq, coeff_std, derivative_stable
 
 def create_visualization(model, x_data, t_data, u_data, losses, 
                         equation_str, coefficients, r_squared, job_id):
@@ -447,7 +534,17 @@ def process_job(job_id: str, filepath: str):
         model, losses = train_pinn_on_data(x_data, t_data, u_data, epochs=1000, job_id=job_id)
         
         # Discover equation (using all available data)
-        equation_str, coefficients, r_squared, all_terms = discover_equation(model, x_data, t_data, job_id=job_id)
+        # The discover_equation function returns additional stability information in this version:
+        # equation_str: string representation of the PDE
+        # coefficients: dictionary of active term coefficients
+        # r_squared: goodness of fit
+        # all_terms: list of all candidate terms considered
+        # stability_freq: selection frequency of each term across bootstrap samples
+        # coeff_std: standard deviation of coefficients across bootstrap samples
+        # derivative_stable: boolean indicating whether finite difference derivatives agree with autograd
+        equation_str, coefficients, r_squared, all_terms, stability_freq, coeff_std, derivative_stable = discover_equation(
+            model, x_data, t_data, job_id=job_id
+        )
         
         # Create visualization
         viz_path = create_visualization(model, x_data, t_data, u_data, losses, 
@@ -460,12 +557,42 @@ def process_job(job_id: str, filepath: str):
             u_pred = model(x_tensor, t_tensor).numpy().flatten()
         mse = np.mean((u_data - u_pred)**2)
         
-        # Store results with quality assessment
+        # Assess quality of discovered equation.
+        # Base classification on r_squared and number of active terms. We further penalize if the
+        # derivative stability check fails or if many active terms have low bootstrap frequency.
         num_terms = len(coefficients)
-        quality = "excellent" if (r_squared > 0.95 and num_terms <= 3) else \
-                  "good" if (r_squared > 0.85 and num_terms <= 5) else \
-                  "fair" if (r_squared > 0.70) else "poor"
-        
+        # Start with a base quality determined by fit and sparsity
+        if r_squared > 0.95 and num_terms <= 3:
+            quality = "excellent"
+        elif r_squared > 0.85 and num_terms <= 5:
+            quality = "good"
+        elif r_squared > 0.70:
+            quality = "fair"
+        else:
+            quality = "poor"
+
+        # Penalize quality if derivatives appear unstable
+        if derivative_stable is False:
+            # degrade by one level
+            if quality == "excellent":
+                quality = "good"
+            elif quality == "good":
+                quality = "fair"
+            else:
+                quality = "poor"
+
+        # Penalize if active terms have low bootstrap selection frequency (<0.6)
+        unstable_terms = [name for name in coefficients.keys() if stability_freq.get(name, 1.0) < 0.6]
+        if unstable_terms:
+            # degrade by one level
+            if quality == "excellent":
+                quality = "good"
+            elif quality == "good":
+                quality = "fair"
+            else:
+                quality = "poor"
+
+        # Assemble result dictionary with extended metrics
         result = {
             "equation": equation_str,
             "coefficients": coefficients,
@@ -476,7 +603,10 @@ def process_job(job_id: str, filepath: str):
             "terms_tested": all_terms,
             "visualization": viz_path,
             "quality": quality,
-            "num_terms": num_terms
+            "num_terms": num_terms,
+            "stability_freq": stability_freq,
+            "coeff_std": coeff_std,
+            "derivative_stable": derivative_stable
         }
         
         result_json = json.dumps(result)
@@ -518,10 +648,12 @@ def process_job(job_id: str, filepath: str):
         conn.close()
 
 # API Endpoints
-@app.get("/", response_class=HTMLResponse)
+# Serve the main web interface. We deliver the top-level index.html from the root of the repository rather than
+# relying on a static directory that may not exist in this simplified deployment.
+@app.get("/")
 async def root():
     """Serve the main web interface"""
-    return FileResponse("static/index.html")
+    return FileResponse("index.html")
 
 @app.post("/api/upload")
 async def upload_file(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
@@ -615,10 +747,7 @@ async def get_visualization(job_id: str):
         raise HTTPException(status_code=404, detail="Visualization not found")
     return FileResponse(viz_path, media_type="image/png")
 
-@app.get("/")
-async def read_root():
-    """Serve the main UI"""
-    return FileResponse("static/index.html")
+# Removed duplicate root endpoint. The main UI is served by the root() function defined above.
 
 if __name__ == "__main__":
     import uvicorn
