@@ -650,10 +650,20 @@ def process_job(job_id: str, filepath: str):
 # API Endpoints
 # Serve the main web interface. We deliver the top-level index.html from the root of the repository rather than
 # relying on a static directory that may not exist in this simplified deployment.
+from pathlib import Path
+from fastapi import HTTPException
+from fastapi.responses import FileResponse
+
 @app.get("/")
 async def root():
-    """Serve the main web interface"""
-    return FileResponse("index.html")
+    for p in [Path("static/index.html"), Path("index.html")]:
+        if p.exists():
+            return FileResponse(str(p))
+
+    raise HTTPException(
+        status_code=500,
+        detail="UI file not found. Expected static/index.html or index.html."
+    )
 
 @app.post("/api/upload")
 async def upload_file(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
