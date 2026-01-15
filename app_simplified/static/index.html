@@ -8,7 +8,6 @@
     :root{
       --bg:#0b1220;
       --panel:#0f172a;
-      --panel2:#0b1220;
       --border:#1f2a44;
       --text:#e5e7eb;
       --muted:#9ca3af;
@@ -17,16 +16,17 @@
       --warn:#fbbf24;
       --bad:#fb7185;
       --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji";
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans";
       --radius:14px;
     }
     *{ box-sizing:border-box; }
     body{
       margin:0;
       font-family:var(--sans);
-      background: radial-gradient(1200px 600px at 20% 0%, rgba(96,165,250,.18), transparent 60%),
-                  radial-gradient(900px 500px at 80% 20%, rgba(52,211,153,.12), transparent 55%),
-                  var(--bg);
+      background:
+        radial-gradient(1200px 600px at 20% 0%, rgba(96,165,250,.18), transparent 60%),
+        radial-gradient(900px 500px at 80% 20%, rgba(52,211,153,.12), transparent 55%),
+        var(--bg);
       color:var(--text);
       min-height:100vh;
     }
@@ -43,17 +43,14 @@
       top:0;
       z-index:10;
     }
-    .brand{
-      display:flex; gap:10px; align-items:center;
-      font-weight:650;
-      letter-spacing:.2px;
-    }
+    .brand{ display:flex; gap:10px; align-items:center; font-weight:650; letter-spacing:.2px; }
     .brand .dot{
       width:10px; height:10px; border-radius:999px;
       background: linear-gradient(135deg, var(--accent), var(--good));
       box-shadow: 0 0 0 4px rgba(96,165,250,.12);
     }
     .header-right{ display:flex; gap:10px; align-items:center; color:var(--muted); font-size:13px; }
+
     .layout{
       display:grid;
       grid-template-columns: 360px 1fr;
@@ -76,6 +73,7 @@
       font-weight:700;
     }
     .subtle{ color:var(--muted); font-size:13px; line-height:1.35; }
+
     .upload{
       border:1px dashed rgba(96,165,250,.6);
       border-radius:12px;
@@ -86,6 +84,7 @@
     }
     .upload:hover{ border-color: rgba(96,165,250,1); background: rgba(2,6,23,.55); }
     .upload.dragover{ border-color: rgba(52,211,153,1); background: rgba(2,6,23,.65); }
+
     .row{ display:flex; gap:10px; align-items:center; justify-content:space-between; }
     .btn{
       appearance:none; border:1px solid var(--border);
@@ -105,7 +104,15 @@
       background: linear-gradient(135deg, rgba(96,165,250,.25), rgba(52,211,153,.12));
     }
     .btn:disabled{ opacity:.5; cursor:not-allowed; }
-    input[type=file]{ display:none; }
+
+    /* IMPORTANT: avoid display:none for file inputs; some browsers block programmatic click */
+    input[type=file]{
+      position:absolute;
+      left:-9999px;
+      width:1px;
+      height:1px;
+      opacity:0;
+    }
 
     .list{ display:flex; flex-direction:column; gap:10px; }
     .job{
@@ -132,27 +139,17 @@
     .badge.processing{ border-color: rgba(251,191,36,.55); color: var(--warn); }
     .badge.queued{ border-color: rgba(96,165,250,.55); color: var(--accent); }
 
-    .main{
-      display:grid;
-      grid-template-rows: auto auto 1fr;
-      gap:14px;
-    }
+    .main{ display:grid; grid-template-rows: auto auto 1fr; gap:14px; }
     .card{
       border:1px solid var(--border);
       border-radius:var(--radius);
       padding:14px;
       background: rgba(15,23,42,.86);
     }
-    .card-title{
-      display:flex; justify-content:space-between; align-items:center;
-      margin-bottom:10px;
-    }
-    .card-title h3{
-      margin:0;
-      font-size:15px;
-      letter-spacing:.2px;
-    }
+    .card-title{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+    .card-title h3{ margin:0; font-size:15px; letter-spacing:.2px; }
     .statusline{ color: var(--muted); font-size:13px; }
+
     .equation{
       font-family: var(--mono);
       background: rgba(2,6,23,.55);
@@ -164,11 +161,7 @@
       overflow:auto;
       min-height:52px;
     }
-    .grid2{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap:14px;
-    }
+    .grid2{ display:grid; grid-template-columns: 1fr 1fr; gap:14px; }
     .metrics{
       display:grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -182,6 +175,7 @@
     }
     .metric .k{ color:var(--muted); font-size:12px; }
     .metric .v{ font-weight:800; font-size:16px; margin-top:4px; }
+
     .table{
       width:100%;
       border-collapse: collapse;
@@ -206,6 +200,7 @@
       background: rgba(2,6,23,.45);
     }
     .table tr:hover td{ background: rgba(2,6,23,.45); }
+
     .pill{
       display:inline-flex; align-items:center; gap:6px;
       padding:6px 10px; border-radius:999px;
@@ -217,6 +212,7 @@
     .pill.good{ border-color: rgba(52,211,153,.55); color: var(--good); }
     .pill.warn{ border-color: rgba(251,191,36,.55); color: var(--warn); }
     .pill.bad{ border-color: rgba(251,113,133,.55); color: var(--bad); }
+
     .viz{
       width:100%;
       border-radius:12px;
@@ -224,6 +220,7 @@
       background: rgba(2,6,23,.2);
       display:block;
     }
+
     .console{
       grid-column: 1 / -1;
       background: rgba(2,6,23,.55);
@@ -236,6 +233,7 @@
       margin-bottom:8px;
     }
     .console-head h2{ margin:0; font-size:13px; text-transform:uppercase; letter-spacing:.4px; color:#cbd5e1; }
+
     .logbox{
       font-family: var(--mono);
       font-size:12.5px;
@@ -253,6 +251,7 @@
     .logline .lvl-warn{ color:#fde68a; }
     .logline .lvl-ok{ color:#86efac; }
     .logline .lvl-err{ color:#fda4af; }
+
     .progresswrap{ margin-top:10px; }
     .bar{
       height:8px; border-radius:999px;
@@ -266,6 +265,7 @@
       background: linear-gradient(90deg, rgba(96,165,250,.9), rgba(52,211,153,.85));
       transition: width .25s ease;
     }
+
     @media (max-width: 980px){
       .layout{ grid-template-columns: 1fr; }
       .metrics{ grid-template-columns: repeat(2, minmax(0,1fr)); }
@@ -290,7 +290,7 @@
       <div class="subtle">Upload a CSV containing columns <span style="font-family:var(--mono);">x, t, u</span>.</div>
       <div style="height:10px"></div>
 
-      <div class="upload" id="uploadZone" role="button" tabindex="0">
+      <div class="upload" id="uploadZone" role="button" tabindex="0" aria-label="Upload CSV">
         <div class="row">
           <div>
             <div style="font-weight:800; margin-bottom:4px;">Upload CSV</div>
@@ -374,9 +374,30 @@
   </div>
 
 <script>
-  // --- State ---
+(function () {
+  // --- Helpers ---
   const el = (id) => document.getElementById(id);
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, (c) => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[c]));
+  }
+  function fmtNum(x, digits=6){
+    if (x === null || x === undefined || Number.isNaN(x)) return '—';
+    return Number(x).toFixed(digits);
+  }
+  function fmtSci(x){
+    if (x === null || x === undefined || Number.isNaN(x)) return '—';
+    return Number(x).toExponential(2);
+  }
+  function metricBox(label, value, color){
+    const d = document.createElement('div');
+    d.className = 'metric';
+    d.innerHTML = `<div class="k">${label}</div><div class="v" style="${color ? `color:${color}`:''}">${value}</div>`;
+    return d;
+  }
 
+  // --- DOM ---
   const uploadZone = el('uploadZone');
   const browseBtn = el('browseBtn');
   const fileInput = el('fileInput');
@@ -397,97 +418,89 @@
   const progressText = el('progressText');
   const progressBar = el('progressBar');
 
+  // --- State ---
   let currentJobId = null;
   let refreshInterval = null;
   let progressInterval = null;
   let lastLogMessage = '';
   let logLines = [];
 
-  // --- Utils ---
+  function setServerStatus(ok){
+    const s = el('serverStatus');
+    s.textContent = ok ? 'API: online' : 'API: offline';
+    s.style.color = ok ? 'var(--good)' : 'var(--bad)';
+  }
   function nowString(){
     try { return new Date().toLocaleString(); } catch { return ''; }
   }
-  function setServerStatus(ok){
-    el('serverStatus').textContent = ok ? 'API: online' : 'API: offline';
-    el('serverStatus').style.color = ok ? 'var(--good)' : 'var(--bad)';
-  }
 
-  function pillForQuality(quality, r2, nTerms){
-    // Trust gate — scientific honesty.
-    // If output looks unstable, do not present as "final".
-    let label = (quality || 'unknown').toUpperCase();
-    let cls = 'warn';
-
-    // Hard overrides based on metrics
-    if (typeof r2 === 'number' && r2 < 0.85) { label = 'UNSTABLE'; cls = 'bad'; }
-    if (typeof nTerms === 'number' && nTerms > 5) { label = 'OVERFIT TERMS'; cls = 'bad'; }
-
-    if (quality === 'excellent') { cls = 'good'; }
-    if (quality === 'good') { cls = 'good'; }
-    if (quality === 'fair') { cls = 'warn'; }
-    if (quality === 'poor') { cls = 'bad'; }
-    if (!quality) { cls = 'warn'; }
-
-    return { label, cls };
-  }
-
-  function metricBox(label, value, color){
-    const d = document.createElement('div');
-    d.className = 'metric';
-    d.innerHTML = `<div class="k">${label}</div><div class="v" style="${color ? `color:${color}`:''}">${value}</div>`;
-    return d;
-  }
-
-  function fmtNum(x, digits=6){
-    if (x === null || x === undefined || Number.isNaN(x)) return '—';
-    return Number(x).toFixed(digits);
-  }
-
-  function fmtSci(x){
-    if (x === null || x === undefined || Number.isNaN(x)) return '—';
-    return Number(x).toExponential(2);
-  }
-
+  // --- Logging ---
   function log(level, msg){
     const t = new Date().toLocaleTimeString();
     const lvlClass =
       level === 'ok' ? 'lvl-ok' :
       level === 'warn' ? 'lvl-warn' :
       level === 'err' ? 'lvl-err' : 'lvl-info';
-    const line = `<div class="logline"><span class="t">[${t}]</span> <span class="${lvlClass}">${msg}</span></div>`;
+    const line = `<div class="logline"><span class="t">[${t}]</span> <span class="${lvlClass}">${escapeHtml(msg)}</span></div>`;
     logLines.push(line);
     if (logLines.length > 200) logLines.shift();
     logbox.innerHTML = logLines.join('');
     logbox.scrollTop = logbox.scrollHeight;
   }
-
   function clearLogs(){
     logLines = [];
     logbox.innerHTML = `<div class="subtle">Logs cleared.</div>`;
     lastLogMessage = '';
   }
-
   clearLogsBtn.addEventListener('click', clearLogs);
 
-  // --- Upload handling ---
-  browseBtn.addEventListener('click', () => fileInput.click());
-  uploadZone.addEventListener('click', (e) => {
-    if (e.target === browseBtn) return;
+  // --- Quality pill / trust gate ---
+  function pillForQuality(quality, r2, nTerms){
+    let label = (quality || 'unknown').toUpperCase();
+    let cls = 'warn';
+
+    if (typeof r2 === 'number' && r2 < 0.85) { label = 'UNSTABLE'; cls = 'bad'; }
+    if (typeof nTerms === 'number' && nTerms > 5) { label = 'OVERFIT TERMS'; cls = 'bad'; }
+
+    if (quality === 'excellent' || quality === 'good') cls = 'good';
+    if (quality === 'fair') cls = 'warn';
+    if (quality === 'poor') cls = 'bad';
+
+    return { label, cls };
+  }
+
+  // --- Upload interactions (BUG-FIXED) ---
+  // Browse button must stop propagation so uploadZone click handler can't interfere.
+  browseBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    fileInput.value = ''; // allow selecting same file again
     fileInput.click();
   });
+
+  // Upload zone click should ignore clicks on interactive elements inside it.
+  uploadZone.addEventListener('click', (e) => {
+    if (e.target.closest('button, a, input, label')) return;
+    fileInput.value = '';
+    fileInput.click();
+  });
+
+  // Drag & drop
   uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('dragover'); });
   uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
   uploadZone.addEventListener('drop', (e) => {
     e.preventDefault();
     uploadZone.classList.remove('dragover');
-    if (e.dataTransfer.files.length) handleFileUpload(e.dataTransfer.files[0]);
+    if (e.dataTransfer.files && e.dataTransfer.files.length) handleFileUpload(e.dataTransfer.files[0]);
   });
+
+  // File input change
   fileInput.addEventListener('change', (e) => {
-    if (e.target.files.length) handleFileUpload(e.target.files[0]);
+    if (e.target.files && e.target.files.length) handleFileUpload(e.target.files[0]);
   });
 
   async function handleFileUpload(file){
-    if (!file.name.toLowerCase().endsWith('.csv')) {
+    if (!file || !file.name || !file.name.toLowerCase().endsWith('.csv')) {
       uploadStatus.innerHTML = `<span style="color:var(--bad); font-weight:800;">Invalid file.</span> Please upload a CSV.`;
       return;
     }
@@ -502,17 +515,17 @@
       const data = await res.json();
 
       if (!res.ok) {
-        uploadStatus.innerHTML = `<span style="color:var(--bad); font-weight:800;">Upload failed.</span> ${data.detail || 'Unknown error'}`;
+        uploadStatus.innerHTML = `<span style="color:var(--bad); font-weight:800;">Upload failed.</span> ${escapeHtml(data.detail || 'Unknown error')}`;
         log('err', `Upload failed: ${data.detail || 'unknown error'}`);
         return;
       }
-      uploadStatus.innerHTML = `<span style="color:var(--good); font-weight:800;">Upload complete.</span> Job: <span style="font-family:var(--mono);">${data.job_id}</span>`;
+      uploadStatus.innerHTML = `<span style="color:var(--good); font-weight:800;">Upload complete.</span> Job: <span style="font-family:var(--mono);">${escapeHtml(data.job_id)}</span>`;
       currentJobId = data.job_id;
       await loadJobs();
       startProgressMonitoring(data.job_id);
       log('ok', `Job created: ${data.job_id}`);
     } catch (e){
-      uploadStatus.innerHTML = `<span style="color:var(--bad); font-weight:800;">Network error.</span> ${e.message}`;
+      uploadStatus.innerHTML = `<span style="color:var(--bad); font-weight:800;">Network error.</span> ${escapeHtml(e.message)}`;
       log('err', `Network error during upload: ${e.message}`);
     }
   }
@@ -529,35 +542,33 @@
       jobsList.innerHTML = jobs.map(j => {
         const created = j.created_at ? new Date(j.created_at).toLocaleString() : '';
         return `
-          <div class="job" data-id="${j.id}">
+          <div class="job" data-id="${escapeHtml(j.id)}">
             <div class="row">
               <div>
                 <div style="font-weight:800;">${escapeHtml(j.dataset_name || j.id)}</div>
-                <div class="subtle">${created}</div>
+                <div class="subtle">${escapeHtml(created)}</div>
               </div>
-              <span class="badge ${j.status}">${(j.status || 'unknown')}</span>
+              <span class="badge ${escapeHtml(j.status || 'unknown')}">${escapeHtml(j.status || 'unknown')}</span>
             </div>
           </div>
         `;
       }).join('');
 
-      // bind
       Array.from(jobsList.querySelectorAll('.job')).forEach(node => {
         node.addEventListener('click', () => viewJobDetails(node.getAttribute('data-id')));
       });
-
     }catch(e){
-      jobsList.innerHTML = `<div class="subtle" style="color:var(--bad);">Failed to load jobs: ${e.message}</div>`;
+      jobsList.innerHTML = `<div class="subtle" style="color:var(--bad);">Failed to load jobs: ${escapeHtml(e.message)}</div>`;
     }
   }
 
   async function viewJobDetails(jobId){
     currentJobId = jobId;
-    clearLogs(); // reset console context for selected job
+    clearLogs();
     log('info', `Selected job: ${jobId}`);
 
     try{
-      const res = await fetch(`/api/jobs/${jobId}`);
+      const res = await fetch(`/api/jobs/${encodeURIComponent(jobId)}`);
       const job = await res.json();
       if (!res.ok){
         summary.textContent = `Failed to load job.`;
@@ -566,15 +577,15 @@
       }
 
       const created = job.created_at ? new Date(job.created_at).toLocaleString() : '—';
-      summary.textContent = `${job.dataset_name || job.id} • ${job.status?.toUpperCase() || 'UNKNOWN'} • ${created}`;
+      summary.textContent = `${job.dataset_name || job.id} • ${(job.status || 'unknown').toUpperCase()} • ${created}`;
 
-      // reset panels
       metrics.innerHTML = '';
       coeffsWrap.innerHTML = `<div class="subtle">No coefficients.</div>`;
       vizImg.style.display = 'none';
       vizFallback.style.display = 'block';
       qualityPill.style.display = 'none';
       copyEqBtn.disabled = true;
+      copyEqBtn.onclick = null;
 
       if (job.status === 'completed' && job.result){
         const r2 = job.result.r_squared;
@@ -583,39 +594,46 @@
         const nTerms = Object.keys(coeffs).length;
         const quality = job.result.quality || 'unknown';
 
-        // quality pill + trust gate
         const pill = pillForQuality(quality, r2, nTerms);
         qualityPill.style.display = 'inline-flex';
         qualityPill.className = `pill ${pill.cls}`;
         qualityPill.textContent = pill.label;
 
-        // Equation display — if unstable, show as "candidate"
         const eq = job.result.equation || '(no equation)';
         if (pill.cls === 'bad'){
           equation.textContent = `CANDIDATE (UNSTABLE)\n${eq}\n\nRecommendation: inspect terms & residuals; consider more data / stronger regularization.`;
         } else {
           equation.textContent = eq;
         }
+
         copyEqBtn.disabled = false;
         copyEqBtn.onclick = async () => {
-          await navigator.clipboard.writeText(eq);
-          log('ok', 'Equation copied to clipboard.');
+          try{
+            await navigator.clipboard.writeText(eq);
+            log('ok', 'Equation copied to clipboard.');
+          }catch(e){
+            log('warn', 'Clipboard copy blocked by browser permissions.');
+          }
         };
 
-        // metrics
-        metrics.appendChild(metricBox('R²', fmtNum(r2, 6), (r2>0.95?'var(--good)': r2>0.85?'var(--accent)': r2>0.70?'var(--warn)':'var(--bad)')));
+        metrics.appendChild(metricBox('R²', fmtNum(r2, 6),
+          (typeof r2 === 'number' && r2>0.95)?'var(--good)' :
+          (typeof r2 === 'number' && r2>0.85)?'var(--accent)' :
+          (typeof r2 === 'number' && r2>0.70)?'var(--warn)' : 'var(--bad)'
+        ));
         metrics.appendChild(metricBox('MSE', fmtSci(mse), ''));
-        metrics.appendChild(metricBox('Active terms', String(nTerms), (nTerms<=3?'var(--good)': nTerms<=5?'var(--accent)':'var(--warn)')));
+        metrics.appendChild(metricBox('Active terms', String(nTerms),
+          (nTerms<=3)?'var(--good)' : (nTerms<=5)?'var(--accent)' : 'var(--warn)'
+        ));
         metrics.appendChild(metricBox('Epochs', String(job.result.epochs ?? '—'), ''));
 
-        // coefficients table
         const entries = Object.entries(coeffs).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1]));
         if (entries.length){
           const rows = entries.map(([term,val], i) => `
             <tr>
               <td>${i+1}</td>
               <td>${escapeHtml(term)}</td>
-              <td>${val >= 0 ? '+' : ''}${Number(val).toFixed(8)}</td>
+              <td>${(Number(val) >= 0 ? '+' : '') + Number(val).toFixed(8)}</td>
               <td>${Math.abs(Number(val)).toExponential(2)}</td>
             </tr>
           `).join('');
@@ -629,14 +647,11 @@
           coeffsWrap.innerHTML = `<div class="subtle" style="color:var(--warn);">No significant terms discovered.</div>`;
         }
 
-        // visualization
-        vizImg.src = `/api/results/${jobId}/visualization`;
+        vizImg.src = `/api/results/${encodeURIComponent(jobId)}/visualization`;
         vizImg.onload = () => { vizFallback.style.display='none'; vizImg.style.display='block'; };
         vizImg.onerror = () => { vizImg.style.display='none'; vizFallback.style.display='block'; };
 
-        // start monitoring this job's progress/logs anyway (useful to see last events)
         startProgressMonitoring(jobId, true);
-
       } else if (job.status === 'failed'){
         qualityPill.style.display = 'inline-flex';
         qualityPill.className = 'pill bad';
@@ -647,8 +662,8 @@
       } else {
         qualityPill.style.display = 'inline-flex';
         qualityPill.className = 'pill warn';
-        qualityPill.textContent = (job.status || 'UNKNOWN').toUpperCase();
-        equation.textContent = `(job ${job.status})`;
+        qualityPill.textContent = (job.status || 'unknown').toUpperCase();
+        equation.textContent = `(job ${(job.status || 'unknown')})`;
         startProgressMonitoring(jobId);
       }
 
@@ -657,12 +672,6 @@
       equation.textContent = '(error)';
       log('err', `Failed to load job: ${e.message}`);
     }
-  }
-
-  function escapeHtml(s){
-    return String(s).replace(/[&<>"']/g, (c) => ({
-      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-    }[c]));
   }
 
   // --- Progress monitoring ---
@@ -674,61 +683,60 @@
 
     progressInterval = setInterval(async () => {
       try{
-        const res = await fetch(`/api/jobs/${jobId}/progress`);
+        const res = await fetch(`/api/jobs/${encodeURIComponent(jobId)}/progress`);
         const p = await res.json();
 
-        if (!p || p.stage === 'unknown') return;
-
-        if (p.message && p.message !== lastLogMessage){
-          lastLogMessage = p.message;
-          const level =
-            p.stage === 'discovery' ? 'warn' :
-            p.stage === 'complete' ? 'ok' :
-            p.stage === 'error' ? 'err' : 'info';
-          log(level, p.message);
-        }
-
-        // progress text + bar
-        let pct = 0;
-        if (p.stage === 'training'){
-          const m = (p.progress || '').match(/(\d+)\s*\/\s*(\d+)/);
-          if (m){
-            const cur = parseInt(m[1],10), tot = parseInt(m[2],10);
-            pct = tot ? (cur/tot)*100 : 0;
-            progressText.textContent = `Training PINN: ${cur}/${tot} epochs`;
-          } else {
-            progressText.textContent = `Training PINN…`;
+        if (p && p.stage && p.stage !== 'unknown'){
+          if (p.message && p.message !== lastLogMessage){
+            lastLogMessage = p.message;
+            const level =
+              p.stage === 'discovery' ? 'warn' :
+              p.stage === 'complete' ? 'ok' :
+              p.stage === 'error' ? 'err' : 'info';
+            log(level, p.message);
           }
-        } else if (p.stage === 'training_complete'){
-          pct = 100; progressText.textContent = `Training complete.`;
-        } else if (p.stage === 'discovery'){
-          pct = 100; progressText.textContent = `Discovering equation…`;
-        } else if (p.stage === 'complete'){
-          pct = 100; progressText.textContent = `Complete.`;
-        }
-        progressBar.style.width = `${Math.max(0, Math.min(100, pct))}%`;
 
-        // stop if completed/failed
-        const jobRes = await fetch(`/api/jobs/${jobId}`);
+          let pct = 0;
+          if (p.stage === 'training'){
+            const m = (p.progress || '').match(/(\d+)\s*\/\s*(\d+)/);
+            if (m){
+              const cur = parseInt(m[1],10), tot = parseInt(m[2],10);
+              pct = tot ? (cur/tot)*100 : 0;
+              progressText.textContent = `Training PINN: ${cur}/${tot} epochs`;
+            } else {
+              progressText.textContent = `Training PINN…`;
+            }
+          } else if (p.stage === 'training_complete'){
+            pct = 100; progressText.textContent = `Training complete.`;
+          } else if (p.stage === 'discovery'){
+            pct = 100; progressText.textContent = `Discovering equation…`;
+          } else if (p.stage === 'complete'){
+            pct = 100; progressText.textContent = `Complete.`;
+          } else {
+            progressText.textContent = `Stage: ${p.stage}`;
+          }
+          progressBar.style.width = `${Math.max(0, Math.min(100, pct))}%`;
+        }
+
+        const jobRes = await fetch(`/api/jobs/${encodeURIComponent(jobId)}`);
         const job = await jobRes.json();
-        if (job.status === 'completed' || job.status === 'failed'){
+        if (job && (job.status === 'completed' || job.status === 'failed')){
           clearInterval(progressInterval);
           progressInterval = null;
+
           if (!silent){
             log(job.status === 'completed' ? 'ok' : 'err', `Job ${job.status}.`);
-            // auto-refresh details
             await loadJobs();
             await viewJobDetails(jobId);
           }
         }
-
       }catch(e){
-        // don't spam
+        // Avoid spamming the console; transient errors can happen during refresh/deploy.
       }
     }, 2000);
   }
 
-  // --- init ---
+  // --- Init ---
   el('nowTime').textContent = nowString();
   setInterval(() => el('nowTime').textContent = nowString(), 1000);
 
@@ -736,13 +744,22 @@
     try{
       const res = await fetch('/api/jobs');
       setServerStatus(res.ok);
-    }catch{ setServerStatus(false); }
+    }catch{
+      setServerStatus(false);
+    }
   }
 
-  await ping();
-  await loadJobs();
-  refreshInterval = setInterval(loadJobs, 4000);
+  async function init(){
+    clearLogs();
+    await ping();
+    await loadJobs();
+    refreshInterval = setInterval(loadJobs, 4000);
+  }
+
+  init();
+})();
 </script>
 </body>
 </html>
+
 
