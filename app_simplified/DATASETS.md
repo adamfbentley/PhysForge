@@ -178,6 +178,6 @@ Upload each dataset to PhysForge and verify the discovered equations:
 4. Check for NaN values in data
 
 **If wrong terms appear:**
-1. Adjust sparsity threshold (default 0.01)
-2. Increase sample size for discovery (default 500)
+1. Adjust sparsity threshold (default 0.05 of the largest coefficient)
+2. Check whether the uploaded grid is dense enough for smooth derivative estimates
 3. Check data quality (smooth derivatives)

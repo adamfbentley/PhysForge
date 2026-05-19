@@ -1,208 +1,155 @@
 # PhysForge API Documentation
 
 ## Overview
-PhysForge is a Physics-Informed Scientific Discovery Platform that enables researchers to run PINN training, PDE discovery, derivative computation, and active experiment design jobs.
 
-## Authentication
-All API endpoints require JWT authentication except for `/auth/login` and `/auth/register`.
+This repository currently ships the simplified single-service PhysForge app in `app_simplified/`. It exposes a FastAPI API, stores job metadata in SQLite, saves uploaded CSV files locally, and writes generated visualizations to `app_simplified/results/`.
 
-### Login
+Run locally:
 ```bash
-POST /auth/login
-Content-Type: application/x-www-form-urlencoded
+cd app_simplified
+pip install -r requirements.txt
+python app.py
+```
 
-username=user@example.com&password=password
+Default local URL: `http://localhost:8000`
+
+## Health
+
+### GET `/health`
+### GET `/api/health`
+
+Returns service, database, and local storage readiness.
+
+Example response:
+```json
+{
+  "status": "healthy",
+  "service": "PhysForge Simplified",
+  "version": "1.0.0",
+  "database": "ok",
+  "job_count": 0,
+  "storage": {
+    "uploads": true,
+    "results": true,
+    "static": true
+  }
+}
+```
+
+## Web UI
+
+### GET `/`
+
+Serves the browser UI from `app_simplified/static/index.html`.
+
+## Jobs
+
+### POST `/api/upload`
+
+Uploads a CSV file and queues background PINN training plus equation discovery.
+
+Requirements:
+- Multipart form field name: `file`
+- Filename must end in `.csv`
+- CSV must contain numeric finite columns: `x`, `t`, `u`
+
+Example:
+```bash
+curl -X POST \
+  -F "file=@app_simplified/sample_heat_equation.csv" \
+  http://localhost:8000/api/upload
 ```
 
 Response:
 ```json
 {
-  "access_token": "eyJ0eXAi...",
-  "token_type": "bearer"
+  "job_id": "c3d8a7d4-7d65-4aa6-9c2d-70f07921f0f1",
+  "status": "queued"
 }
 ```
 
-### Using the API
-Include the JWT token in the Authorization header:
-```
-Authorization: Bearer eyJ0eXAi...
-```
+### GET `/api/jobs`
 
-## Core Services
+Lists jobs newest first.
 
-### 1. Authentication Service (Port 8000)
-- `POST /auth/register` - Register new user
-- `POST /auth/login` - Login and get JWT token
-- `GET /auth/me` - Get current user info
-- `GET /auth/verify` - Verify JWT token (for API Gateway)
-
-### 2. Data Management Service (Port 8001)
-- `GET /datasets/` - List user's datasets
-- `POST /datasets/` - Upload new dataset
-- `GET /datasets/{id}` - Get dataset info
-- `GET /datasets/{id}/download_link` - Get download link
-
-### 3. Job Orchestration Service (Port 8002)
-- `GET /jobs/` - List user's jobs
-- `GET /jobs/{id}` - Get job status
-- `POST /jobs/pinn-training` - Submit PINN training job
-- `POST /jobs/derivatives` - Submit derivative computation job
-- `POST /jobs/pde-discovery` - Submit PDE discovery job
-- `POST /jobs/active-experiment` - Submit active experiment job
-- `POST /jobs/{id}/cancel` - Cancel running job
-- `GET /jobs/{id}/logs` - Get job logs
-
-### 4. Reporting Service (Port 8003)
-- `GET /reports/` - List user's reports
-- `GET /reports/{id}` - Get report details
-- `POST /reports/generate` - Generate new report
-
-### 5. Audit Service (Port 8010)
-- `POST /audit/events/` - Create audit event
-- `GET /audit/events/` - Query audit events (admin only)
-- `GET /audit/events/summary/` - Get audit summary (admin only)
-
-## Job Types
-
-### PINN Training
+Example response:
 ```json
-{
-  "job_type": "pinn_training",
-  "config": {
-    "model_config": {
-      "layers": [2, 20, 20, 20, 20, 20, 20, 20, 20, 1],
-      "activation": "tanh"
-    },
-    "training_config": {
-      "learning_rate": 0.001,
-      "epochs": 10000,
-      "optimizer": "adam"
-    },
-    "data_config": {
-      "dataset_id": 1,
-      "collocation_points": 10000
-    }
+[
+  {
+    "id": "c3d8a7d4-7d65-4aa6-9c2d-70f07921f0f1",
+    "status": "completed",
+    "dataset_name": "sample_heat_equation.csv",
+    "created_at": "2026-05-19T10:30:00",
+    "completed_at": "2026-05-19T10:33:00"
   }
-}
+]
 ```
 
-### PDE Discovery
+### GET `/api/jobs/{job_id}`
+
+Returns job status, saved result data, and current in-memory progress if the process is still running.
+
+Completed job response includes:
 ```json
 {
-  "job_type": "pde_discovery",
-  "config": {
-    "algorithm": "sindy",
-    "data_path": "s3://datasets/experiment_data.h5",
-    "feature_library": {
-      "poly_order": 3,
-      "include_sine": true,
-      "include_cos": true
+  "id": "c3d8a7d4-7d65-4aa6-9c2d-70f07921f0f1",
+  "status": "completed",
+  "dataset_name": "sample_heat_equation.csv",
+  "created_at": "2026-05-19T10:30:00",
+  "completed_at": "2026-05-19T10:33:00",
+  "error": null,
+  "result": {
+    "equation": "u_t = +0.010000*u_xx",
+    "coefficients": {
+      "u_xx": 0.01
     },
-    "sindy_config": {
-      "threshold": 0.1,
-      "max_iter": 20
-    }
-  }
+    "r_squared": 0.99,
+    "mse": 0.001,
+    "final_loss": 0.001,
+    "epochs": 1000,
+    "terms_tested": ["u", "u_x", "u_xx", "u_tt", "u_xt", "u_xxx", "u²", "u³", "u*u_x", "u*u_xx", "u_x²"],
+    "visualization": "results/c3d8a7d4-7d65-4aa6-9c2d-70f07921f0f1.png",
+    "quality": "excellent",
+    "num_terms": 1
+  },
+  "processing": null
 }
 ```
 
-### Derivative Computation
+### GET `/api/jobs/{job_id}/progress`
+
+Returns in-memory progress for a running job.
+
+Example:
 ```json
 {
-  "job_type": "derivatives",
-  "config": {
-    "data_path": "s3://datasets/measurement_data.csv",
-    "derivative_order": 2,
-    "method": "finite_difference",
-    "accuracy_order": 4
-  }
+  "stage": "training",
+  "progress": "400/1000",
+  "message": "Epoch 400/1000 - Loss: 0.000123"
 }
 ```
 
-### Active Experiment Design
+If the process has restarted or no progress is known:
 ```json
 {
-  "job_type": "active_experiment",
-  "config": {
-    "experiment_config": {
-      "parameter_space": {
-        "param1": {"min": 0, "max": 1},
-        "param2": {"min": -1, "max": 1}
-      },
-      "objective_function": "some_function"
-    },
-    "data_path": "s3://datasets/prior_data.h5",
-    "acquisition_function": "expected_improvement"
-  }
+  "stage": "unknown",
+  "progress": "N/A",
+  "message": "No progress data available"
 }
 ```
 
-## Error Handling
+### GET `/api/results/{job_id}/visualization`
 
-All endpoints return standard HTTP status codes:
-- `200` - Success
-- `400` - Bad Request (invalid input)
-- `401` - Unauthorized (invalid/missing token)
-- `403` - Forbidden (insufficient permissions)
-- `404` - Not Found
-- `429` - Too Many Requests (rate limited)
-- `500` - Internal Server Error
+Returns the generated PNG visualization for a completed job.
 
-Error response format:
-```json
-{
-  "detail": "Error description"
-}
-```
+## Error Responses
 
-## Rate Limiting
+Common errors:
+- `400` for unsupported upload types
+- `404` for unknown jobs or missing visualizations
+- `503` if the health check cannot reach SQLite
+- `500` for unexpected processing failures, stored on the job as `status: failed`
 
-- Authentication endpoints: 10 requests/minute
-- General API endpoints: 100 requests/minute
-- File uploads: 5 uploads/5 minutes
+## Notes
 
-## File Uploads
-
-Datasets are uploaded as multipart/form-data:
-```bash
-curl -X POST \
-  -H "Authorization: Bearer <token>" \
-  -F "file=@data.csv" \
-  -F "name=My Dataset" \
-  -F "description=Experimental data" \
-  http://localhost:8001/datasets/
-```
-
-Supported formats: CSV, HDF5, JSON, TXT, NPY, NPZ
-
-## Job Monitoring
-
-Jobs progress through states: PENDING → RUNNING → COMPLETED/FAILED
-
-Monitor progress:
-```bash
-# Get job status
-curl -H "Authorization: Bearer <token>" \
-  http://localhost:8002/jobs/123
-
-# Get job logs
-curl -H "Authorization: Bearer <token>" \
-  http://localhost:8002/jobs/123/logs
-```
-
-## Data Storage
-
-- **Metadata**: PostgreSQL databases
-- **Files**: MinIO object storage
-- **Cache/Queue**: Redis
-- **Audit Logs**: Separate PostgreSQL database
-
-## Security
-
-- JWT-based authentication
-- Role-based access control (RBAC)
-- Input validation and sanitization
-- Rate limiting
-- Security headers
-- Audit logging
-- File type validation
+The older multi-service architecture described in early project notes is not part of the checked-in runnable code. The current implementation is intentionally a single deployable app for demos and portfolio use.

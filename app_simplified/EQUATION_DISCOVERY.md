@@ -133,7 +133,7 @@ u_t = α·u_xx + β·u - γ·u²
 - Wave equations with `u_tt` need modification
 
 ### 4. Sparsity Threshold
-- Fixed at 1% of max coefficient
+- Fixed at 5% of max coefficient
 - Some equations need adaptive thresholding
 
 ---
@@ -162,7 +162,7 @@ coeffs = coeffs_norm / std(X)
 ### Sparsity via Thresholding
 ```python
 max_coeff = max(abs(coeffs))
-coeffs[abs(coeffs) < 0.01 * max_coeff] = 0
+coeffs[abs(coeffs) < 0.05 * max_coeff] = 0
 ```
 
 ---
@@ -170,12 +170,12 @@ coeffs[abs(coeffs) < 0.01 * max_coeff] = 0
 ## Performance
 
 ### Computational Cost
-- **Training:** ~60-120 seconds (3000 epochs, CPU)
-- **Discovery:** ~2-5 seconds (500 samples, 12 terms)
-- **Total:** ~2 minutes end-to-end
+- **Training:** 1000 epochs by default; runtime depends on CPU and dataset size
+- **Discovery:** Uses all uploaded rows and the current candidate library
+- **Total:** Sample datasets usually complete in a few minutes locally
 
 ### Memory Usage
-- Feature matrix: `500 × 12` floats (~24 KB)
+- Feature matrix: `n_rows × 11` floats for the current library
 - Model parameters: ~2,200 parameters (~9 KB)
 - Minimal memory footprint
 

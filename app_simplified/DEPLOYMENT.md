@@ -141,13 +141,17 @@ curl https://your-app-url.onrender.com/health
 
 Should return:
 ```json
-{"status": "healthy", "service": "PhysForge Simplified"}
+{
+  "status": "healthy",
+  "service": "PhysForge Simplified",
+  "database": "ok"
+}
 ```
 
 ### Upload test data:
 1. Navigate to your deployment URL
 2. Upload `sample_heat_equation.csv`
-3. Wait ~2 minutes for training
+3. Wait for training and discovery to complete
 4. View discovered equation: `u_t = 0.010000·u_xx`
 
 ### Share your deployment:

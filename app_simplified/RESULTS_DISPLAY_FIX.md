@@ -171,20 +171,11 @@ Based on the code analysis, the most likely cause was:
 4. ⚠️ Test on live demo
 
 ### Short-Term (Improve Robustness):
-1. **Add Backend Health Check:**
-   ```python
-   @app.get("/api/health")
-   async def health_check():
-       # Test database write/read
-       # Test file system write
-       # Return status
-   ```
-
-2. **Store Results in Database AND File:**
+1. **Store Results in Database AND File:**
    - Save JSON to `results/{job_id}.json` as backup
    - If database fails, serve from file
 
-3. **Add Frontend Retry Logic:**
+2. **Add Frontend Retry Logic:**
    - If results fail to load, retry 3 times
    - Show "Retrying..." message
 

@@ -15,11 +15,11 @@
 
 ## Overview
 
-PhysForge is a complete ML engineering project: PyTorch neural networks with automatic differentiation, FastAPI async backend, background job processing, and deployed web interface. Upload data, the PINN trains while respecting physics constraints, and sparse regression extracts the governing PDE.
+PhysForge is a compact ML engineering project: PyTorch neural networks with automatic differentiation, a FastAPI backend, background job processing, and a deployed web interface. Upload data, the PINN learns a smooth surrogate for `u(x,t)`, and sparse regression extracts the governing PDE from learned derivatives.
 
 **How it works:**
 1. Upload CSV with columns: x (space), t (time), u (field value)
-2. PINN trains while satisfying PDE structure
+2. PINN fits the field with lightweight smoothness regularization
 3. Sparse regression identifies equation terms
 4. View discovered equation with quality metrics
 
@@ -39,26 +39,31 @@ cd app_simplified
 pip install -r requirements.txt
 python app.py
 ```
-Visit [http://localhost:5000](http://localhost:5000)
+Visit [http://localhost:8000](http://localhost:8000)
+
+Health check:
+```bash
+curl http://localhost:8000/health
+```
 
 ---
 
 ## Technical Details
 
 ### Physics-Informed Neural Networks (PINNs)
-PyTorch implementation using automatic differentiation to enforce physics:
+PyTorch implementation using automatic differentiation to compute derivatives for discovery:
 ```python
 # Compute derivatives via autograd
 u_t = torch.autograd.grad(u, t, grad_outputs=torch.ones_like(u), create_graph=True)[0]
 u_x = torch.autograd.grad(u, x, grad_outputs=torch.ones_like(u), create_graph=True)[0]
 u_xx = torch.autograd.grad(u_x, x, grad_outputs=torch.ones_like(u_x), create_graph=True)[0]
 
-# Physics loss: PDE residual should be zero
-physics_loss = torch.mean((u_t - discovered_coefficients @ term_library)**2)
+# Smoothness regularization keeps the learned surrogate differentiable
+smoothness_loss = 0.001 * torch.mean(u_xx**2) + 0.001 * torch.mean(u_t**2)
 ```
 
 - 3-layer MLP learns field u(x,t) from spatiotemporal data
-- Physics loss enforces PDE structure during training
+- Smoothness regularization stabilizes derivative estimates
 - Data loss ensures fidelity to observations
 
 ### Equation Discovery
@@ -69,9 +74,9 @@ Sparse regression identifies minimal equation from computed derivatives:
 4. Quality metrics: R², sparsity, residual norm
 
 ### Validated Examples
-- **Heat equation:** u_t = 0.1·u_xx
-- **Burgers equation:** u_t = 0.1·u_xx - u·u_x  
-- **KdV equation:** u_t = -u·u_x - u_xxx
+- **Heat equation:** u_t = 0.01·u_xx
+- **Burgers equation:** u_t = 0.01·u_xx - u·u_x
+- **KdV equation:** u_t = -u·u_x - 0.01·u_xxx
 
 ---
 
@@ -86,7 +91,7 @@ Sparse regression identifies minimal equation from computed derivatives:
 ## What This Project Demonstrates
 
 ✅ **ML Engineering:** PyTorch model training with custom loss functions  
-✅ **Full-Stack Development:** FastAPI backend with async job processing  
+✅ **Full-Stack Development:** FastAPI backend with background job processing  
 ✅ **Scientific Computing:** Numerical methods, sparse regression, autograd  
 ✅ **DevOps:** Docker containerization, cloud deployment  
 ✅ **Clean Code:** ~600 lines doing real ML, not scaffolding
@@ -95,7 +100,7 @@ Sparse regression identifies minimal equation from computed derivatives:
 
 ## Performance
 
-- Training: 15-25 minutes for 1000 epochs (typical)
+- Training: depends on hardware and dataset size; sample datasets usually complete in a few minutes locally
 - Equation discovery: <5 seconds
 - Dataset size: Tested up to 10,000 spatiotemporal points
 - Hardware: CPU-optimized (Render free tier)
@@ -113,8 +118,8 @@ Sparse regression identifies minimal equation from computed derivatives:
 | Layer | Technology |
 |-------|------------|
 | **ML Framework** | PyTorch 2.0+ (autograd, neural networks) |
-| **Backend** | FastAPI (async, background tasks, job queue) |
-| **Scientific** | NumPy, SciPy (sparse regression, optimization) |
+| **Backend** | FastAPI (background tasks and REST API) |
+| **Scientific** | NumPy, Pandas, Matplotlib; SciPy for sample data generation |
 | **Frontend** | Vanilla JS, HTML5, CSS (no framework bloat) |
 | **Database** | SQLite (job tracking) |
 | **Deployment** | Docker, Render (free tier) |
@@ -148,4 +153,4 @@ MIT License - See LICENSE file
 
 - Raissi et al. (2019) - Physics-Informed Neural Networks
 - PyTorch team for automatic differentiation
-- SciPy community for numerical optimization
+- SciPy community for numerical integration utilities

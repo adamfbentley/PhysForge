@@ -10,30 +10,32 @@ Single-service architecture using FastAPI + SQLite
 """
 
 from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
+from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional
 import numpy as np
 import torch
 import torch.nn as nn
 import pandas as pd
-import sys
 import matplotlib
 matplotlib.use('Agg')  # Non-interactive backend
 import matplotlib.pyplot as plt
 import sqlite3
 import json
-import io
 import os
 from datetime import datetime
+from pathlib import Path
 import uuid
 
+BASE_DIR = Path(__file__).resolve().parent
+UPLOAD_DIR = BASE_DIR / "uploads"
+RESULTS_DIR = BASE_DIR / "results"
+STATIC_DIR = BASE_DIR / "static"
+
 # Create necessary directories
-os.makedirs("uploads", exist_ok=True)
-os.makedirs("results", exist_ok=True)
-os.makedirs("static", exist_ok=True)
+for directory in (UPLOAD_DIR, RESULTS_DIR, STATIC_DIR):
+    directory.mkdir(exist_ok=True)
 
 # Global status tracker for real-time progress
 processing_status = {}
@@ -50,7 +52,7 @@ app.add_middleware(
 )
 
 # Database setup
-DB_PATH = "physforge.db"
+DB_PATH = BASE_DIR / "physforge.db"
 
 def init_db():
     """Initialize SQLite database"""
@@ -71,6 +73,25 @@ def init_db():
     conn.close()
 
 init_db()
+
+def validate_dataset(df: pd.DataFrame):
+    """Validate uploaded CSV data before starting expensive training."""
+    required_columns = ["x", "t", "u"]
+    missing_columns = [col for col in required_columns if col not in df.columns]
+    if missing_columns:
+        raise ValueError("CSV must contain columns: x, t, u")
+
+    if df.empty:
+        raise ValueError("CSV must contain at least one data row")
+
+    numeric_data = df[required_columns].apply(pd.to_numeric, errors="coerce")
+    if numeric_data.isnull().any().any():
+        raise ValueError("Columns x, t, and u must contain only numeric values")
+
+    if not np.isfinite(numeric_data.to_numpy()).all():
+        raise ValueError("Columns x, t, and u must contain only finite values")
+
+    return numeric_data
 
 # PINN Model
 class PINN(nn.Module):
@@ -492,11 +513,11 @@ Active Coefficients:
                      verticalalignment='center', wrap=True)
     
     plt.tight_layout()
-    output_path = f"results/{job_id}.png"
+    output_path = RESULTS_DIR / f"{job_id}.png"
     plt.savefig(output_path, dpi=150, bbox_inches='tight')
     plt.close()
     
-    return output_path
+    return f"results/{job_id}.png"
 
 # API Models
 class JobStatus(BaseModel):
@@ -522,10 +543,8 @@ def process_job(job_id: str, filepath: str):
         # Load data
         df = pd.read_csv(filepath)
         
-        # Expect columns: x, t, u
-        if not all(col in df.columns for col in ['x', 't', 'u']):
-            raise ValueError("CSV must contain columns: x, t, u")
-        
+        df = validate_dataset(df)
+
         x_data = df['x'].values
         t_data = df['t'].values
         u_data = df['u'].values
@@ -648,32 +667,62 @@ def process_job(job_id: str, filepath: str):
         conn.close()
 
 # API Endpoints
-# Serve the main web interface. We deliver the top-level index.html from the root of the repository rather than
-# relying on a static directory that may not exist in this simplified deployment.
-from pathlib import Path
-from fastapi import HTTPException
-from fastapi.responses import FileResponse
+@app.get("/health")
+@app.get("/api/health")
+async def health_check():
+    """Return basic service, database, and local storage health."""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        c.execute("SELECT COUNT(*) FROM jobs")
+        job_count = c.fetchone()[0]
+        conn.close()
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Database unavailable: {exc}") from exc
 
-@app.get("/")
+    return {
+        "status": "healthy",
+        "service": "PhysForge Simplified",
+        "version": app.version,
+        "database": "ok",
+        "job_count": job_count,
+        "storage": {
+            "uploads": UPLOAD_DIR.exists(),
+            "results": RESULTS_DIR.exists(),
+            "static": STATIC_DIR.exists(),
+        },
+    }
+
+@app.get("/", response_class=HTMLResponse)
 async def root():
-    for p in [Path("static/index.html"), Path("index.html")]:
-        if p.exists():
-            return FileResponse(str(p))
+    """Serve the main web interface."""
+    candidates = [
+        STATIC_DIR / "index.html",
+        BASE_DIR / "index.html",
+        Path.cwd() / "static" / "index.html",
+        Path.cwd() / "index.html",
+    ]
+    for path in candidates:
+        if path.exists():
+            return FileResponse(path)
 
     raise HTTPException(
         status_code=500,
-        detail="UI file not found. Expected static/index.html or index.html."
+        detail="UI file not found. Expected static/index.html or index.html.",
     )
 
 @app.post("/api/upload")
 async def upload_file(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
     """Upload a dataset and start training"""
+    filename = file.filename or ""
+    if not filename.lower().endswith(".csv"):
+        raise HTTPException(status_code=400, detail="Only CSV files are supported")
     
     # Generate job ID
     job_id = str(uuid.uuid4())
     
     # Save uploaded file
-    filepath = f"uploads/{job_id}.csv"
+    filepath = UPLOAD_DIR / f"{job_id}.csv"
     contents = await file.read()
     with open(filepath, "wb") as f:
         f.write(contents)
@@ -752,12 +801,10 @@ async def list_jobs():
 @app.get("/api/results/{job_id}/visualization")
 async def get_visualization(job_id: str):
     """Get visualization image for a completed job"""
-    viz_path = f"results/{job_id}.png"
+    viz_path = RESULTS_DIR / f"{job_id}.png"
     if not os.path.exists(viz_path):
         raise HTTPException(status_code=404, detail="Visualization not found")
     return FileResponse(viz_path, media_type="image/png")
-
-# Removed duplicate root endpoint. The main UI is served by the root() function defined above.
 
 if __name__ == "__main__":
     import uvicorn
