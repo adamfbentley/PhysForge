@@ -1,156 +1,83 @@
-# PhysForge: Automated PDE Discovery
+# PhysForge
 
-[![Demo: Live](https://img.shields.io/badge/demo-live-brightgreen.svg)](https://physforge.onrender.com)
-[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-ee4c2c.svg)](https://pytorch.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688.svg)](https://fastapi.tiangolo.com/)
+PhysForge is a prototype application for exploring partial-differential-equation
+(PDE) discovery from spatiotemporal data. It combines a PyTorch neural surrogate,
+automatic differentiation, thresholded least-squares regression, and a FastAPI
+interface.
 
-**Full-stack web application** for discovering governing equations from spatiotemporal data using Physics-Informed Neural Networks (PINNs) and sparse regression.
+The project is an engineering and learning prototype, not a validated scientific
+instrument. Results from noisy, sparse, or experimental data should not be
+treated as reliable equation identification without an external benchmark and
+uncertainty analysis.
 
-**🔗 Live Demo:** [https://physforge.onrender.com](https://physforge.onrender.com) *(free tier - allow 30s cold start)*
+## Method
 
-![PhysForge demo results](demo_pinn_results.png)
+Given a CSV containing `x`, `t`, and `u`, the application:
 
----
+1. fits a neural surrogate for `u(x,t)`;
+2. evaluates spatial and temporal derivatives with automatic differentiation;
+3. constructs a candidate library such as `u`, `u_x`, `u_xx`, and `u*u_x`;
+4. uses iterative thresholded least squares to select active terms; and
+5. reports coefficients, residual diagnostics, and term-stability estimates.
 
-## Overview
+The implementation is in `app_simplified/app.py`.
 
-PhysForge is a compact ML engineering project: PyTorch neural networks with automatic differentiation, a FastAPI backend, background job processing, and a deployed web interface. Upload data, the PINN learns a smooth surrogate for `u(x,t)`, and sparse regression extracts the governing PDE from learned derivatives.
+## Run locally
 
-**How it works:**
-1. Upload CSV with columns: x (space), t (time), u (field value)
-2. PINN fits the field with lightweight smoothness regularization
-3. Sparse regression identifies equation terms
-4. View discovered equation with quality metrics
-
----
-
-## Quick Start
-
-### Try the Live Demo
-Visit [https://physforge.onrender.com](https://physforge.onrender.com) and upload one of the sample datasets:
-- `sample_heat_equation.csv` - Diffusion process
-- `sample_burgers_equation.csv` - Nonlinear wave propagation
-- `sample_kdv_equation.csv` - Soliton dynamics
-
-### Run Locally
 ```bash
 cd app_simplified
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 python app.py
 ```
-Visit [http://localhost:8000](http://localhost:8000)
 
-Health check:
+The service starts at `http://localhost:8000`; its health endpoint is
+`http://localhost:8000/health`.
+
+## Sample data
+
+The repository includes generated datasets for the heat, Burgers, and KdV
+equations. These datasets provide controlled demonstrations with known
+generating equations. Their presence does not by itself validate recovery of
+the correct terms or coefficients.
+
+No reproducible end-to-end benchmark table is currently published. A scientific
+validation should report, over fixed train/test splits and multiple random
+seeds:
+
+- field prediction error on held-out points;
+- derivative error against known derivatives;
+- active-term precision and recall;
+- relative coefficient error;
+- PDE residual on held-out data; and
+- sensitivity to noise, sampling density, and sparsity thresholds.
+
+Until those measurements are recorded, the sample equations should be described
+as intended test cases rather than validated recoveries.
+
+## Tests
+
 ```bash
-curl http://localhost:8000/health
+python -m pytest -q
 ```
 
----
+The test suite covers input validation, selected API and persistence behavior,
+and controlled sparse-regression fixtures. It is not a substitute for the
+end-to-end PDE-discovery benchmark described above.
 
-## Technical Details
+## Repository layout
 
-### Physics-Informed Neural Networks (PINNs)
-PyTorch implementation using automatic differentiation to compute derivatives for discovery:
-```python
-# Compute derivatives via autograd
-u_t = torch.autograd.grad(u, t, grad_outputs=torch.ones_like(u), create_graph=True)[0]
-u_x = torch.autograd.grad(u, x, grad_outputs=torch.ones_like(u), create_graph=True)[0]
-u_xx = torch.autograd.grad(u_x, x, grad_outputs=torch.ones_like(u_x), create_graph=True)[0]
-
-# Smoothness regularization keeps the learned surrogate differentiable
-smoothness_loss = 0.001 * torch.mean(u_xx**2) + 0.001 * torch.mean(u_t**2)
+```text
+app_simplified/        FastAPI application, discovery pipeline, and sample data
+tests/                 Unit and controlled-fixture tests
+docs/api.md            API notes
+demo_minimal_pinn.py   Standalone heat-equation PINN demonstration
 ```
 
-- 3-layer MLP learns field u(x,t) from spatiotemporal data
-- Smoothness regularization stabilizes derivative estimates
-- Data loss ensures fidelity to observations
+## References
 
-### Equation Discovery
-Sparse regression identifies minimal equation from computed derivatives:
-1. Extract derivatives from trained PINN (u, u_x, u_xx, u_xxx, ...)
-2. Build candidate term library (u, u·u_x, u_xx, etc.)
-3. Thresholded least-squares finds sparse coefficients
-4. Quality metrics: R², sparsity, residual norm
-
-### Validated Examples
-- **Heat equation:** u_t = 0.01·u_xx
-- **Burgers equation:** u_t = 0.01·u_xx - u·u_x
-- **KdV equation:** u_t = -u·u_x - 0.01·u_xxx
-
----
-
-## Use Cases
-
-- **Research:** Discover PDEs from simulation/experimental data
-- **Education:** Interactive demonstration of physics-informed ML
-- **Validation:** Test theoretical models against measurements
-
----
-
-## What This Project Demonstrates
-
-✅ **ML Engineering:** PyTorch model training with custom loss functions  
-✅ **Full-Stack Development:** FastAPI backend with background job processing  
-✅ **Scientific Computing:** Numerical methods, sparse regression, autograd  
-✅ **DevOps:** Docker containerization, cloud deployment  
-✅ **Clean Code:** ~600 lines doing real ML, not scaffolding
-
----
-
-## Performance
-
-- Training: depends on hardware and dataset size; sample datasets usually complete in a few minutes locally
-- Equation discovery: <5 seconds
-- Dataset size: Tested up to 10,000 spatiotemporal points
-- Hardware: CPU-optimized (Render free tier)
-
----
-
-## Related Projects
-
-**PhysForge Research Edition:** Enhanced version with multiple discovery algorithms (SINDy, PySR), uncertainty quantification, and comprehensive benchmarking. Available at [PhysForge_Research](../PhysForge_Research/)
-
----
-
-## Technical Stack
-
-| Layer | Technology |
-|-------|------------|
-| **ML Framework** | PyTorch 2.0+ (autograd, neural networks) |
-| **Backend** | FastAPI (background tasks and REST API) |
-| **Scientific** | NumPy, Pandas, Matplotlib; SciPy for sample data generation |
-| **Frontend** | Vanilla JS, HTML5, CSS (no framework bloat) |
-| **Database** | SQLite (job tracking) |
-| **Deployment** | Docker, Render (free tier) |
-
-**Architecture:** Single-app deployment optimized for portfolio demonstration. ~600 lines of Python handling ML training, API endpoints, job management, and equation discovery.
-
----
-
-## Contributing
-
-Issues and suggestions welcome. This is a portfolio/research project demonstrating PINN-based equation discovery.
-
----
+- Raissi, Perdikaris, and Karniadakis (2019), Physics-informed neural networks.
+- Brunton, Proctor, and Kutz (2016), Sparse identification of nonlinear dynamics.
 
 ## License
 
-MIT License - See LICENSE file
-
----
-
-## Contact
-
-**Adam Frank Bentley**
-- Email: [adam.f.bentley@gmail.com](mailto:adam.f.bentley@gmail.com)
-- GitHub: [@adamfbentley](https://github.com/adamfbentley)
-- Live Demo: [https://physforge.onrender.com](https://physforge.onrender.com)
-
----
-
-## Acknowledgments
-
-- Raissi et al. (2019) - Physics-Informed Neural Networks
-- PyTorch team for automatic differentiation
-- SciPy community for numerical integration utilities
+MIT. See `LICENSE`.
